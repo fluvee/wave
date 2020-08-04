@@ -5,8 +5,10 @@
 #' efficacy/effectiveness study.
 #' @param dat data set
 #' @param params list of input parameters
-#' @param write_to_file logical. If true, outputs are written to file.
+#' @param write_to_file logical. If true, outputs are written to file
 #' @param path path where files are to be written. Defaults to working directory
+#' @param par_tab data frame of parameters for ML method
+#' @param mcmc_pars vector of MCMC inputs
 #' @return list of VE estimates from each method, maximum likelihood parameter estimates from the ML method for
 #' each simulation, the proportion of times the null hypothesis was rejected for each method, mean VE estimate over simulations
 #' for each time period, and the mean maximum likelihood parameters over all simulations.
@@ -15,7 +17,7 @@
 #' @import dplyr
 #' @import tidyr
 #' @export
-estimate_ve <- function(dat, params, write_to_file = TRUE, path = getwd()){
+estimate_ve <- function(dat, params, write_to_file = TRUE, path = getwd(), par_tab, mcmc_pars){
 
 # initialise count of number of simulations in which H0 is rehected --------------------------------------
    reject_h0_durham <- reject_h0_tian <- reject_h0_ml <- 0
@@ -25,12 +27,12 @@ estimate_ve <- function(dat, params, write_to_file = TRUE, path = getwd()){
      print(i)
 
     # subset data for each simulation---------------------------------------------------------------------
-      outcomes_dat1 <- dat %>% filter(.data$Sim == i)
+      dat1 <- dat %>% filter(.data$Sim == i)
 
 # method from Durham et al. 1988 -------------------------------------------------------------------------
 
 # fit ordinary Cox propotional hazards model -------------------------------------------------------------
-  flu_coxmod <- coxph(Surv(DINF_new,FARI) ~ V, data=outcomes_dat1)
+  flu_coxmod <- coxph(Surv(DINF_new,FARI) ~ V, data=dat1)
 
 # test the proportional hazards assumption and compute the Schoenfeld residuals ($y) ---------------------
   flu_zph <- cox.zph(fit = flu_coxmod, transform = "identity")
@@ -52,7 +54,7 @@ estimate_ve <- function(dat, params, write_to_file = TRUE, path = getwd()){
 
      # calculate VE
      # n_timepoint_breaks argument specifies the number of time points to calculate VE for
-     temp2 <- tian_ve(outcomes_dat1, n_days = params$ND, n_periods = params$NJ,
+     temp2 <- tian_ve(dat1, n_days = params$ND, n_periods = params$NJ,
                       n_days_period = params$NDJ)
      #temp2a <- temp2$output %>% mutate(Sim = i, Method = "Tian")
      #ve_est <- bind_rows(ve_est,temp2a)
@@ -62,13 +64,12 @@ estimate_ve <- function(dat, params, write_to_file = TRUE, path = getwd()){
 
 # method from Ainslie et al. 2017 ------------------------------------------------------------------------
 
-     temp3 <- ml_ve(outcomes_dat1, n_days = params$ND, n_periods = params$NJ,
-                         n_days_period = params$NDJ, latent_period = 1, infectious_period = 4)
+     temp3 <- ml_ve2(dat1, params, par_tab = par_tab, mcmc_pars = mcmc_pars, file_name = params$title)
      temp3a <- temp3$ve_dat %>% mutate(Sim = i, Method = "ML")
      ve_est <- bind_rows(ve_est,temp3a)
 
      # proportion of sims where null hypothesis is rejected
-     reject_h0_ml <- reject_h0_ml + ifelse(temp3$param_est$lower[3] > 0, 1, 0)
+     reject_h0_ml <- reject_h0_ml + ifelse(temp3$param_est$lambda[2] > 0, 1, 0)
 
      # mle parameter estimates
      temp3b <- temp3$param_est %>% mutate(Sim = i, Method = "ML")
@@ -87,8 +88,9 @@ estimate_ve <- function(dat, params, write_to_file = TRUE, path = getwd()){
      rename(ve_mean = .data$fn1, ve_sd = .data$fn2)
 
    mean_mle_params <- mle_param_est %>%
-     group_by(.data$param) %>%
-     summarise_at(.vars = "mle", .funs = "mean")
+     filter(rownames(.data) == "mle") %>%
+     select(-.data$Sim, -.data$Method) %>%
+     summarise_all(.funs = "mean")
 
    rtn <- list(ve_est = ve_est,
                mle_param_est = mle_param_est,

@@ -19,7 +19,8 @@ Imports:
     splines,
     timereg,
     openxlsx,
-    lazymcmc
+    lazymcmc,
+    stats
 Remotes: jameshay218/lazymcmc
 Suggests: 
     testthat (>= 2.1.0),

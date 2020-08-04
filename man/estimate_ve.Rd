@@ -4,16 +4,27 @@
 \alias{estimate_ve}
 \title{Apply different VE estimation methods}
 \usage{
-estimate_ve(dat, params, write_to_file = TRUE, path = getwd())
+estimate_ve(
+  dat,
+  params,
+  write_to_file = TRUE,
+  path = getwd(),
+  par_tab,
+  mcmc_pars
+)
 }
 \arguments{
 \item{dat}{data set}
 
 \item{params}{list of input parameters}
 
-\item{write_to_file}{logical. If true, outputs are written to file.}
+\item{write_to_file}{logical. If true, outputs are written to file}
 
 \item{path}{path where files are to be written. Defaults to working directory}
+
+\item{par_tab}{data frame of parameters for ML method}
+
+\item{mcmc_pars}{vector of MCMC inputs}
 }
 \value{
 list of VE estimates from each method, maximum likelihood parameter estimates from the ML method for

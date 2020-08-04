@@ -4,14 +4,15 @@
 #' The ML method is based on calculating the contribution to the likelihood function of each study participant.
 #' See XX for more details.
 #' @param x a list with the information necessary to calculate the likelihood function
-#' @param par parameters to estimate
+#' @param pars parameters to estimate
 #' @return the negative sum of the loglikelihood function
 #' @keywords wave
 #' @export
-logLik <- function(x, par){
-  alpha = par[1]
-  theta_0 = par[2]
-  phi = par[3]
+loglik <- function(x, pars){
+  names(pars) <- parameter_names
+  alpha = pars["alpha"]
+  theta_0 = pars["theta_0"]
+  phi = pars["phi"]
 
   pi_0u <- pi_0v <- pi_1u <- pi_1v <- c(1,rep(0,x$n_days-1))
   psi_0u <- psi_0v <- psi_1u <- psi_1v <- pi_0u
@@ -115,7 +116,7 @@ ml_ve <- function(dat, n_days, n_periods, n_days_period, latent_period = 1, infe
   # maximum likelihood estimates ----------------------------------------------
   #tryCatch({
   mle <- stats::optim(par = c(0.3, 0.4, 1),
-               fn = logLik,
+               fn = loglik,
                x = x,
                method = "L-BFGS-B",
                lower = c(0.0001, 0.0001, 0.0001),

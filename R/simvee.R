@@ -110,6 +110,7 @@ simvee <- function(params, simNum) {
 # function to run simulation and generate incidence report
 run_simvee <- function(params, path = getwd()){
   for (i in 1:params$sim) {
+    print(i)
     results <- simvee(params, i)
 
     if (params$population_report_file == TRUE) {
