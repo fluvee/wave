@@ -41,7 +41,7 @@ mi_data_laiv <- mi_data1 %>%
 # time point.
 
 # fit ordinary Cox propotional hazards model (just for IIV first)
-flu_coxmod <- coxph(Surv(DINF_new,influenza) ~ V, data = mi_data_laiv)
+flu_coxmod <- coxph(Surv(DINF_new,influenza) ~ V, data = mi_data_iiv)
 
 # test the proportional hazards assumption and compute the Schoenfeld residuals ($y)
 flu_zph <- cox.zph(fit = flu_coxmod, transform = "identity")
@@ -58,7 +58,7 @@ schoenfeld <- flu_zph$y # Schoenfeld residuals
 for_loess <- data.frame(x = time_points,
                         V = schoenfeld[,1] + flu_coxmod$coefficients[1])
 
-l <- loess(V~x, data = for_loess, degree = 2)
+l <- loess(V~x, data = for_loess, degree = 1)
 f <- function(x) predict(l, newdata = x)
 ve_t <- 1 - exp(l$fitted) # VE(t)
 # get confidence intervals
@@ -80,6 +80,7 @@ ve_dat_iiv <- tibble(time_point = time_points,
                  lower = ve_t_upper,
                  upper = ve_t_lower,
                  vac_type = "IIV")
+
 # LAIV
 first_date <- mi_data_laiv[which(mi_data_laiv$DINF_new == min(time_points)),]$onset_date
 pred_dates <- first_date + (time_points - min(time_points))
@@ -105,7 +106,7 @@ p_durham <- ggplot(data = ve_dat_plot, aes(x = date, y = ve)) +
   theme_bw() +
   facet_grid(. ~ vac_type)
 
-ggsave("VE_est_plot_durham.png", p_durham)
+ggsave("VE_est_plot_durham1.png", p_durham)
 
 # method from Tian et al. 2005 ---------------------------------------------------------------------------
 
