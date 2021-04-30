@@ -58,7 +58,7 @@ for (i in 1:params$sim){
   reject_h0_durham <- reject_h0_durham + ifelse(flu_zph$table[1,3] < 0.05, 1, 0)
 
   # calculate VE
-  rtn[[i]] <- durham_ve(flu_zph, n_days = params$ND, n_periods = params$NJ,
+  rtn[[i]] <- durham_ve(flu_zph, df = 4, n_days = params$ND, n_periods = params$NJ,
                     n_days_period = params$NDJ, var = "V") %>%
     mutate(Sim = i, Method = "Durham")
 }
