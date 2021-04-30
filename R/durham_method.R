@@ -22,7 +22,7 @@
 #' @import dplyr
 #' @import tidyr
 #' @export
-durham_ve <- function(x, df = 2, n_days, n_periods, n_days_period, var){
+durham_ve <- function(x, df = 4, n_days, n_periods, n_days_period, var){
   xx <- x$x
   yy <- x$y
   d <- nrow(yy)
@@ -33,8 +33,8 @@ durham_ve <- function(x, df = 2, n_days, n_periods, n_days_period, var){
   } else {pred.x <- n_days}
   temp <- c(pred.x, xx)
   lmat <- ns(temp, df = df, intercept = TRUE)
-  pmat <- lmat[1:length(pred.x), ]
-  xmat <- lmat[-(1:length(pred.x)), ]
+  pmat <- lmat[1:n_days, ]
+  xmat <- lmat[-(1:n_days), ]
   qmat <- qr(xmat)
   if (x$transform!="identity")
     stop("please re-fit the Cox model with the identity transform")
@@ -43,7 +43,7 @@ durham_ve <- function(x, df = 2, n_days, n_periods, n_days_period, var){
   # se
   bk <- backsolve(qmat$qr[1:df, 1:df], diag(df))
   xtx <- bk %*% t(bk)
-  seval <- ((pmat %*% xtx) * pmat) %*% rep(1, df)
+  seval <- ((pmat %*% xtx) * pmat) %*% rep(1, df) # supposed to be multiplied by factor of d, but that causes MASSIVE errors
 
   # ve estimate
   yhat.beta <- pmat %*% qr.coef(qmat, yy)
@@ -60,10 +60,10 @@ durham_ve <- function(x, df = 2, n_days, n_periods, n_days_period, var){
   # output
   periods <- rep(1:n_periods, each = n_days_period)
   ve_dat <- tibble(day = round(pred.x), period = periods, ve = as.numeric(yhat),
-                   ve_lower = ylow, ve_upper = yup) %>%
-    select(-.data$day) %>%
-    group_by(.data$period) %>%
-    summarise_all(.funs = mean)
+                   ve_lower = ylow, ve_upper = yup) #%>%
+    # select(-.data$day) %>%
+    # group_by(.data$period) %>%
+    # summarise_all(.funs = mean)
 
   return(ve_dat)
 }
