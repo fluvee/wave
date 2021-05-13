@@ -12,12 +12,14 @@ library(lazymcmc)
 library(openxlsx)
 
 ### Load wave package
+
 # make sure you're in the wave root directory!
 devtools::load_all()
 ### Read parameters from input files
 #   you can specify the folder and file names of the input file within the ""
 #   if no path is specified a window will pop up and allow you to choose a file from your computer
-params <- readParams()
+
+params <- readParams("./inst/extdata/input/SimVEE_MI_RCT_06_04_00_input.csv")
 
 ### run simulation
 #   there is an optional path argument for run_simvee(params, path = )
