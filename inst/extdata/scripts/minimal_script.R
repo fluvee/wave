@@ -1,20 +1,15 @@
 # SIMVEE minimal script
-# update: 11 May, 2020
-# time: 18:02
-# install.packages("timereg")
-# install.packages("DEoptim")
-# library(dplyr)
-# library(foreign)
-# library(survival)
-# library(splines)
-# library(timereg)
-# library(ggplot2)
-# library(DEoptim)
+# update: 01 October, 2020
+# time: 17:24
 
-### Source functions from other files
-# source('R/simvee.R')
-# source('R/readParams.R')
-# source('R/ve_methods.R')
+library(dplyr)
+library(foreign)
+library(survival)
+library(splines)
+library(timereg)
+library(ggplot2)
+library(lazymcmc)
+library(openxlsx)
 
 ### Load wave package
 
@@ -23,6 +18,7 @@ devtools::load_all()
 ### Read parameters from input files
 #   you can specify the folder and file names of the input file within the ""
 #   if no path is specified a window will pop up and allow you to choose a file from your computer
+
 params <- readParams("./inst/extdata/input/SimVEE_MI_RCT_06_04_00_input.csv")
 
 ### run simulation
@@ -32,7 +28,7 @@ outcomes_dat <- run_simvee(params)
 
 ### read in outcomes file
 # you can specify the file name/path of the output file inside ""
-# outcomes_dat <- read.csv(file.choose())
+outcomes_dat <- read.csv("./inst/extdata/output/Outcomes_ban_406_S10.csv")
 
 # add FARI indicator variable
 outcomes_dat <- outcomes_dat %>% mutate(FARI = ifelse(DINF == 0, 0, 1),
@@ -45,7 +41,7 @@ parTab <- data.frame(values=c(params$alpha_0, params$theta_d[1], params$theta_d[
                              "latent_period", "infectious_period"),
                      fixed=c(0,0,0,rep(1,5)),
                      steps=c(rep(0.01,8)),
-                     lower_bound=c(rep(0.0001,3),rep(0,5)),
+                     lower_bound=c(rep(0.0001,2), 1,rep(0,5)),
                      upper_bound=c(1,1,2, rep(1000, 5)),
                      stringsAsFactors=FALSE)
 
@@ -54,8 +50,8 @@ parTab <- data.frame(values=c(params$alpha_0, params$theta_d[1], params$theta_d[
 ## run for a further 10000 (iterations) steps. Save every nth rows, where n is "thin" (ie. 1 here).
 ## Write to disk every 100 iterations (post thinning). Note that the adaptive period is also saved
 ## to disk
-mcmcPars <- c("iterations"=10000,"popt"=0.44,"opt_freq"=1000,
-              "thin"=1,"adaptive_period"=5000,"save_block"=1000)
+mcmcPars <- c("iterations"=50000,"popt"=0.44,"opt_freq"=1000,
+              "thin"=1,"adaptive_period"=10000,"save_block"=1000)
 
 # apply VE estimation methods
 ve_estimates <- estimate_ve(dat = outcomes_dat, params, par_tab = parTab, mcmc_pars = mcmcPars)

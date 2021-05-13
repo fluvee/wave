@@ -19,11 +19,11 @@
 #' @export
 estimate_ve <- function(dat, params, write_to_file = TRUE, path = getwd(), par_tab, mcmc_pars){
 
-# initialise count of number of simulations in which H0 is rehected --------------------------------------
+# initialise count of number of simulations in which H0 is rejected --------------------------------------
    reject_h0_durham <- reject_h0_tian <- reject_h0_ml <- 0
 
 # loop through simulations and apply each method ---------------------------------------------------------
-   for (i in 1:max(dat$Sim)){
+   for (i in 1:params$sim){
      print(i)
 
     # subset data for each simulation---------------------------------------------------------------------
@@ -65,14 +65,21 @@ estimate_ve <- function(dat, params, write_to_file = TRUE, path = getwd(), par_t
 # method from Ainslie et al. 2017 ------------------------------------------------------------------------
 
      temp3 <- ml_ve2(dat1, params, par_tab = par_tab, mcmc_pars = mcmc_pars, file_name = params$title)
-     temp3a <- temp3$ve_dat %>% mutate(Sim = i, Method = "ML")
+     temp3a <- temp3$ve_dat %>%
+        mutate(Sim = i, Method = "ML")
+
      ve_est <- bind_rows(ve_est,temp3a)
 
      # proportion of sims where null hypothesis is rejected
      reject_h0_ml <- reject_h0_ml + ifelse(temp3$param_est$lambda[2] > 0, 1, 0)
 
      # mle parameter estimates
-     temp3b <- temp3$param_est %>% mutate(Sim = i, Method = "ML")
+     temp3b <- temp3$param_est %>%
+        mutate(Sim = i,
+               Method = "ML",
+               value = c("mle", "quantile_2.5", "quantile_97.5"))
+
+
      if (i > 1){
        mle_param_est <- bind_rows(mle_param_est,temp3b)
      } else {mle_param_est <- temp3b}
@@ -88,8 +95,8 @@ estimate_ve <- function(dat, params, write_to_file = TRUE, path = getwd(), par_t
      rename(ve_mean = .data$fn1, ve_sd = .data$fn2)
 
    mean_mle_params <- mle_param_est %>%
-     filter(rownames(.data) == "mle") %>%
-     select(-.data$Sim, -.data$Method) %>%
+     filter(value == "mle") %>%
+     select(-.data$Sim, -.data$Method, -.data$value) %>%
      summarise_all(.funs = "mean")
 
    rtn <- list(ve_est = ve_est,
@@ -99,9 +106,32 @@ estimate_ve <- function(dat, params, write_to_file = TRUE, path = getwd(), par_t
                mean_mle_params = mean_mle_params)
 
    if(write_to_file){
-     write.csv(prop_reject_h0,file = paste0(path,"reject_h0_prop_",params$title,".csv"))
-     write.csv(mle_param_est, file = paste0(path,"mle_parameter_estimates_",params$title,".csv"))
-     write.csv(mean_ve,file = paste0(path,"mean_ve_estimates_",params$title,".csv"))
+     # write to one excel file and have each output as separate sheet
+     list_output <- c("ve_est", "mle_param_est", "prop_reject_h0", "mean_ve", "mean_mle_params")
+
+     # create workbook
+     wb <- createWorkbook(paste0("sim_output_", params$title, ".xlsx"))
+
+     # add sheets
+     addWorksheet(wb, list_output[1])
+     addWorksheet(wb, list_output[2])
+     addWorksheet(wb, list_output[3])
+     addWorksheet(wb, list_output[4])
+     addWorksheet(wb, list_output[5])
+
+     # add outputs to their sheet
+     writeData(wb, 1, ve_est)
+     writeData(wb, 2, mle_param_est)
+     writeData(wb, 3, prop_reject_h0)
+     writeData(wb, 4, mean_ve)
+     writeData(wb, 5, mean_mle_params)
+
+     # save workbook
+     saveWorkbook(wb, file = paste0("sim_output_", params$title, ".xlsx"), overwrite = TRUE)
+
+     # write.csv(prop_reject_h0,file = paste0(path,"reject_h0_prop_",params$title,".csv"))
+     # write.csv(mle_param_est, file = paste0(path,"mle_parameter_estimates_",params$title,".csv"))
+     # write.csv(mean_ve,file = paste0(path,"mean_ve_estimates_",params$title,".csv"))
    }
 
    return(rtn)

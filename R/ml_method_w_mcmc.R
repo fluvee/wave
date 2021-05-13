@@ -43,7 +43,7 @@ rownames(mles) <- c("mle", "2.5%", "97.5%")
 mles$lambda <- mles$phi - 1
 
 periods <- rep(1:params$NJ, each = params$NDJ)
-ve_dat <- tibble(day = 1:params$ND, period = periods, ve = 1 - (mles$theta_0 + (mles$lambda * .data$day))) %>%
+ve_dat <- tibble(day = 1:params$ND, period = periods, ve = 1 - (mles$theta_0[1] + (mles$lambda[1] * (.data$period - 1)))) %>%
   select(-.data$day) %>%
   group_by(.data$period) %>%
   summarise_all(.funs = mean) %>%
