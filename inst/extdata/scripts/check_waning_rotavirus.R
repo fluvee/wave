@@ -45,11 +45,52 @@ for (j in 1:3){
     # test the proportional hazards assumption and compute the Schoenfeld residuals ($y)
     flu_zph <- cox.zph(fit = flu_coxmod, transform = "identity")
     reject_h0_durham <- reject_h0_durham + ifelse(flu_zph$table[1,3] < 0.05, 1, 0)
-
+    x <- flu_zph
+    df = 4
     # calculate VE
-    rtn[[i]] <- durham_ve(flu_zph, df = 4, n_days = params$ND, n_periods = params$NJ,
-                          n_days_period = params$NDJ, var = "V") %>%
-      mutate(Sim = i, Method = "Durham")
+    xx <- x$x
+    yy <- x$y
+    d <- nrow(yy)
+    df <- max(df)
+    nvar <- ncol(yy)
+    pred.x <- seq(from = (params$NDJ/2), to = params$ND - (params$NDJ/2), length = params$NJ)
+    temp <- c(pred.x, xx)
+    lmat <- ns(temp, df = df, intercept = TRUE)
+    pmat <- lmat[1:length(pred.x), ]
+    xmat <- lmat[-(1:length(pred.x)), ]
+    qmat <- qr(xmat)
+    if (x$transform!="identity")
+      stop("please re-fit the Cox model with the identity transform")
+    if (qmat$rank < df)
+      stop("Spline fit is singular, try a smaller degrees of freedom")
+    # se
+    bk <- backsolve(qmat$qr[1:df, 1:df], diag(df))
+    xtx <- bk %*% t(bk)
+    seval <- ((pmat %*% xtx) * pmat) %*% rep(1, df) # supposed to be multiplied by factor of d, but that causes MASSIVE errors
+
+    # ve estimate
+    yhat.beta <- pmat %*% qr.coef(qmat, yy)
+    yhat <- 1-exp(yhat.beta) # VE estimate
+
+    # se
+    tmp <- 2 * sqrt(x$var[1,1] * seval)
+    ylow.beta <- yhat.beta - tmp
+    yup.beta <- yhat.beta + tmp
+    ylow <- 1-exp(yup.beta)
+    yup <- 1-exp(ylow.beta)
+    yr <- range(yhat, yup, ylow)
+
+    output <- data.frame(time = pred.x,
+                         period = 1:params$NJ,
+                         yhat = yhat,
+                         ylow = ylow,
+                         yup = yup,
+                         sim = i)
+    # store output in a list
+    rtn[[i]] <- output
+      # durham_ve(flu_zph, df = 4, n_days = params$ND, n_periods = params$NJ,
+      #                     n_days_period = params$NDJ, var = "V") %>%
+      # mutate(Sim = i, Method = "Durham")
   }
   print(reject_h0_durham/params$sim)
   if (j == 1){ rtn1 <- rtn
@@ -58,10 +99,23 @@ for (j in 1:3){
 }
 # bind the outputs of each simulation
 results0 <- bind_rows(rtn1) %>%
-  group_by(Sim, period)
+  select(sim, period, V) %>%
+  group_by(period) %>%
+  summarise_at(.vars = "V", .funs = "mean")
 
 results03 <- bind_rows(rtn2) %>%
-  group_by(Sim, period)
+  select(sim, period, V) %>%
+  group_by(period) %>%
+  summarise_at(.vars = "V", .funs = "mean")
 
 results06 <- bind_rows(rtn3) %>%
-  group_by(Sim, period)
+  select(sim, period, V) %>%
+  group_by(period) %>%
+  summarise_at(.vars = "V", .funs = "mean")
+
+# plot to check
+plot(results0$period, results0$V, type = "l", ylim = c(0,1))
+lines(results03$period, results03$V, col = "blue")
+lines(results06$period, results06$V, col = "red")
+legend("topright", legend = c("no waning", "3% waning", "6% waning"),
+       col = c("black", "blue", "red"), lty = c(1, 1, 1))
