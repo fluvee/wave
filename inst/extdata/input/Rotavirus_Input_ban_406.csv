@@ -1,46 +1,45 @@
-﻿Title (alphanumeric),ban_406,,,,,
-Number of simulations,100,,,,,
-Seed,4345,,,,,
-Leaky or all-or-none vaccine,0,,"Leaky = 0, all-or-none = 1",,,
-Output files ('yes' or 'no' for each),,,,,,
-Output files in sas format,no,,,,,
-Output files in csv format,yes,,,,,
-Input and calculated parameters,no,,,,,
-Detailed for each simulation,no,,For debugging,,,
-Incidence-daily for each simulation,no,,For debugging,,,
-Incidence-total for each simulation,no,,For debugging,,,
-Incidence-daily means over all simulations,no,,,,,
-Incidence-total means over all simulations,no,,,,,
-Outcomes for each simulation,yes,,,,,
-Add timestamp to output file names,no,,,,,
-Number of days in each period (NDJ),30,,,,,
-Number of periods in the study (NJ),10,,,,,
-Number of days in the study (ND),300,,Check that ND = NDJ*NJ,,,
-Number of participants in study (N),2000,,,,,
-Probability of X=1 (pai),1,,,,,
-Probability of vaccination for X=1 (alpha_1),0.6,,,,,
-Probability of vaccination for X=0 (alpha_0),0.6,,,,,
-Daily probabilities of infection when V=0 X=1 for each period {beta_d01},,,,,,
-,1,0.000260824,,,,
-,2,0.000469484,,,,
-,3,0.001043297,,,,
-,4,0.00151278,,,,
-,5,0.00151278,,,,
-,6,0.001669275,,,,
-,7,0.001408451,,,,
-,8,0.00151278,,,,
-,9,0.000991132,,,,
-,10,0.001017214,,,,
-Daily multiplier for daily probability of infection when V=1 for each period {theta_d},,,,,,
-,1,0.4,,,,
-,2,0.46,,,,
-,3,0.52,,,,
-,4,0.58,,,,
-,5,0.64,,,,
-,6,0.7,,,,
-,7,0.76,,,,
-,8,0.82,,,,
-,9,0.88,,,,
-,10,0.94,,,,
-Multiplier for daily probability of infection when X=0 (phi),1,,,,,
-,,,,,,
+﻿Title (alphanumeric);ban_406;;
+Number of simulations;100;;
+Seed;4345;;
+Leaky or all-or-none vaccine;0;;Leaky = 0, all-or-none = 1
+Output files ('yes' or 'no' for each);;;
+Output files in sas format;no;;
+Output files in csv format;yes;;
+Input and calculated parameters;no;;
+Detailed for each simulation;no;;For debugging
+Incidence-daily for each simulation;no;;For debugging
+Incidence-total for each simulation;no;;For debugging
+Incidence-daily means over all simulations;no;;
+Incidence-total means over all simulations;no;;
+Outcomes for each simulation;yes;;
+Add timestamp to output file names;no;;
+Number of days in each period (NDJ);30;;
+Number of periods in the study (NJ);10;;
+Number of days in the study (ND);300;;Check that ND = NDJ*NJ
+Number of participants in study (N);2000;;
+Probability of X=1 (pai);1;;
+Probability of vaccination for X=1 (alpha_1);0.6;;
+Probability of vaccination for X=0 (alpha_0);0.6;;
+Daily probabilities of infection when V=0 X=1 for each period {beta_d01};;;
+;1;0.000260824;
+;2;0.000469484;
+;3;0.001043297;
+;4;0.00151278;
+;5;0.00151278;
+;6;0.001669275;
+;7;0.001408451;
+;8;0.00151278;
+;9;0.000991132;
+;10;0.001017214;
+Daily multiplier for daily probability of infection when V=1 for each period {theta_d};;;
+;1;0.4;
+;2;0.46;
+;3;0.52;
+;4;0.58;
+;5;0.64;
+;6;0.7;
+;7;0.76;
+;8;0.82;
+;9;0.88;
+;10;0.94;
+Multiplier for daily probability of infection when X=0 (phi);1;;
