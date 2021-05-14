@@ -28,9 +28,7 @@ durham_ve <- function(x, df = 4, n_days, n_periods, n_days_period, var){
   d <- nrow(yy)
   df <- max(df)
   nvar <- ncol(yy)
-  if (length(n_days) == 1) {
-    pred.x <- seq(from = min(xx), to = max(xx), length = n_days)
-  } else {pred.x <- n_days}
+  pred.x <- seq(from = (n_days_period/2), to = n_days - (n_days_period/2), length = n_periods)
   temp <- c(pred.x, xx)
   lmat <- ns(temp, df = df, intercept = TRUE)
   pmat <- lmat[1:n_days, ]
@@ -58,13 +56,12 @@ durham_ve <- function(x, df = 4, n_days, n_periods, n_days_period, var){
   yr <- range(yhat, yup, ylow)
 
   # output
-  periods <- rep(1:n_periods, each = n_days_period)
-  ve_dat <- tibble(day = round(pred.x), period = periods, ve = as.numeric(yhat),
-                   ve_lower = ylow, ve_upper = yup) #%>%
-    # select(-.data$day) %>%
-    # group_by(.data$period) %>%
-    # summarise_all(.funs = mean)
+  output <- data.frame(time = pred.x,
+                       period = 1:n_periods,
+                       yhat = yhat,
+                       ylow = ylow,
+                       yup = yup)
 
-  return(ve_dat)
+  return(output)
 }
 # ----------------------------------------------------------
