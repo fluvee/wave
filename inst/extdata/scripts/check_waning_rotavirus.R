@@ -5,6 +5,7 @@
 # load required packages
 library(readr)
 library(dplyr)
+library(ggplot2)
 devtools::load_all()
 
 # read in one parameter to get number of sims
@@ -101,17 +102,33 @@ for (j in 1:3){
 results0 <- bind_rows(rtn1) %>%
   select(sim, period, V) %>%
   group_by(period) %>%
-  summarise_at(.vars = "V", .funs = "mean")
+  summarise_at(.vars = "V", .funs = c("mean", "sd")) %>%
+  mutate(lower = mean - 1.96 * sd,
+         upper = mean + 1.96 * sd)
 
 results03 <- bind_rows(rtn2) %>%
   select(sim, period, V) %>%
   group_by(period) %>%
-  summarise_at(.vars = "V", .funs = "mean")
+  summarise_at(.vars = "V", .funs = c("mean", "sd")) %>%
+  mutate(lower = mean - 1.96 * sd,
+         upper = mean + 1.96 * sd)
 
 results06 <- bind_rows(rtn3) %>%
   select(sim, period, V) %>%
   group_by(period) %>%
-  summarise_at(.vars = "V", .funs = "mean")
+  summarise_at(.vars = "V", .funs = c("mean", "sd")) %>%
+  mutate(lower = mean - 1.96 * sd,
+         upper = mean + 1.96 * sd)
+
+results_all <- bind_rows(results0,
+                         results03,
+                         results06,
+                         .id = "waning_rate") %>%
+  mutate(waning_rate = case_when(
+    waning_rate == 1 ~ "no waning",
+    waning_rate == 2 ~ "3% waning",
+    waning_rate == 3 ~ "6% waning"
+  ))
 
 # plot to check
 plot(results0$period, results0$V, type = "l", ylim = c(0,1))
@@ -119,3 +136,11 @@ lines(results03$period, results03$V, col = "blue")
 lines(results06$period, results06$V, col = "red")
 legend("topright", legend = c("no waning", "3% waning", "6% waning"),
        col = c("black", "blue", "red"), lty = c(1, 1, 1))
+
+# fancier ggplot
+p <- ggplot(data = results_all, aes(x = period, y = mean, color = waning_rate)) +
+  geom_line() +
+  geom_ribbon(aes(ymin=lower,ymax=upper, fill = waning_rate), alpha = 0.1, linetype = "dashed") +
+  facet_wrap(~waning_rate, nrow = 3) +
+  theme_bw()
+p
