@@ -108,19 +108,3 @@ p_durham <- ggplot(data = ve_dat_plot, aes(x = date, y = ve)) +
 
 ggsave("VE_est_plot_durham1.png", p_durham)
 
-# method from Tian et al. 2005 ---------------------------------------------------------------------------
-
-# calculate VE
-# n_timepoint_breaks argument specifies the number of time points to calculate VE for
-tian_est <- tian_ve(mi_data1, n_days = 196, n_periods = 28,
-                 n_days_period = 7)
-
-
-# method from Ainslie et al. 2017 ------------------------------------------------------------------------
-
-temp3 <- ml_ve2(dat1, params, par_tab = par_tab, mcmc_pars = mcmc_pars, file_name = params$title)
-temp3a <- temp3$ve_dat %>% mutate(Sim = i, Method = "ML")
-ve_est <- bind_rows(ve_est,temp3a)
-
-# proportion of sims where null hypothesis is rejected
-reject_h0_ml <- reject_h0_ml + ifelse(temp3$param_est$lambda[2] > 0, 1, 0)
