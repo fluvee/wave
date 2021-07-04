@@ -31,8 +31,8 @@ durham_ve <- function(x, df = 4, n_days, n_periods, n_days_period, var){
   pred.x <- seq(from = (n_days_period/2), to = n_days - (n_days_period/2), length = n_periods)
   temp <- c(pred.x, xx)
   lmat <- ns(temp, df = df, intercept = TRUE)
-  pmat <- lmat[1:n_days, ]
-  xmat <- lmat[-(1:n_days), ]
+  pmat <- lmat[1:n_periods, ]
+  xmat <- lmat[-(1:n_periods), ]
   qmat <- qr(xmat)
   if (x$transform!="identity")
     stop("please re-fit the Cox model with the identity transform")
