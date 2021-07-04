@@ -36,7 +36,7 @@ for (j in 1:3){
 
   # loop over simulations
   for (i in 1:params$sim){
-
+    #print(i)
     # subset data for current simulation (i)
     dat <- outcomes_dat1 %>%
       filter(Sim == i)
@@ -129,13 +129,6 @@ results_all <- bind_rows(results0,
     waning_rate == 2 ~ "3% waning",
     waning_rate == 3 ~ "6% waning"
   ))
-
-# plot to check
-plot(results0$period, results0$V, type = "l", ylim = c(0,1))
-lines(results03$period, results03$V, col = "blue")
-lines(results06$period, results06$V, col = "red")
-legend("topright", legend = c("no waning", "3% waning", "6% waning"),
-       col = c("black", "blue", "red"), lty = c(1, 1, 1))
 
 # fancier ggplot
 p <- ggplot(data = results_all, aes(x = period, y = mean, color = waning_rate)) +
