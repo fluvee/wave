@@ -62,7 +62,7 @@ l <- loess(V~x, data = for_loess, degree = 1)
 f <- function(x) predict(l, newdata = x)
 ve_t <- 1 - exp(l$fitted) # VE(t)
 # get confidence intervals
-pred <- predict(l, for_loess, se=TRUE)
+pred <- predict(l, for_loess, se = TRUE)
 ve_t_lower <- 1- exp(pred$fit - 1.96*pred$se.fit)
 ve_t_upper <- 1 - exp(pred$fit + 1.96*pred$se.fit)
 # integrate loess function and divide by days between first and last case

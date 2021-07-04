@@ -3,13 +3,14 @@
 # time: 12:27
 # install.packages("timereg")
 # install.packages("DEoptim")
-# library(dplyr)
+library(dplyr)
 # library(foreign)
 # library(survival)
 # library(splines)
 # library(timereg)
-# library(ggplot2)
+library(ggplot2)
 # library(DEoptim)
+library(readr)
 
 ### Source functions from other files
 # source('R/simvee.R')
@@ -22,8 +23,8 @@ devtools::load_all()
 ### Read parameters from input files
 #   you can specify the folder and file names of the input file within the ""
 #   if no path is specified a window will pop up and allow you to choose a file from your computer
-# params <- readParams("./inst/extdata/input/SimVEE_MI_RCT_06_04_00_input.csv")
-params <- readParams("inst/extdata/input/Input_ban_400.csv")
+params <- readParams("./inst/extdata/input/SimVEE_MI_RCT_06_04_03_input.csv")
+# params <- readParams("inst/extdata/input/Input_ban_400.csv")
 
 ### run simulation
 #   there is an optional path argument for run_simvee(params, path = )
@@ -37,7 +38,6 @@ outcomes_dat <- run_simvee(params)
 # add FARI indicator variable
 outcomes_dat1 <- outcomes_dat %>% mutate(FARI = ifelse(DINF == 0, 0, 1),
                                          DINF_new = ifelse(DINF == 0, 999, DINF))
-
 
 # only estimate VE using Durham method
 # this is so we can troubleshoot this method
@@ -66,8 +66,21 @@ for (i in 1:params$sim){
 
 # bind the outputs of each simulation
 results <- bind_rows(rtn) %>%
-  group_by(Sim, period)
+  select(Sim, period, V) %>%
+  group_by(period) %>%
+  summarise_at(.vars = "V", .funs = c("mean", "sd")) %>%
+  mutate(lower = mean - 1.96 * sd,
+         upper = mean + 1.96 * sd,
+         lower_new = ifelse(lower < -0.5, -0.5, lower),
+         upper_new = ifelse(upper > 1.5, 1.5, upper))
 
+# plot
+p <- ggplot(data = results, aes(x = period, y = mean)) + # , color = waning_rate
+  geom_line() +
+  geom_ribbon(aes(ymin=lower_new, ymax=upper_new), alpha = 0.1, linetype = "dashed") + # , fill = waning_rate
+  #facet_wrap(~waning_rate, nrow = 3) +
+  theme_bw()
+p
 
 
 
