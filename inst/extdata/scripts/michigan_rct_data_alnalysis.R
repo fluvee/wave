@@ -75,15 +75,16 @@ ve_t_avg <- 1 - exp(int$value / (max(time_points) - min(time_points)))
 # calculate VE and CIs using bootstrap --------------------------------------------------
 library(boot)
 # function to obtain VE(t) from the data
-get_ve_t <- function(n_days_period, n_days, n_periods, data, indices) {
+get_ve_t <- function(n, data, indices) {
   d <- data[indices,] # allows boot to select sample
   coxmod <- coxph(Surv(DINF_new,influenza) ~ V, data = d) # fit ordinary Cox propotional hazards model (just for IIV first)
-  flu_zph <- cox.zph(fit = flu_coxmod, transform = "identity") # test the proportional hazards assumption and compute the Schoenfeld residuals ($y)
-  xx <- flu_zph$x
-  yy <- flu_zph$y
+  zph <- cox.zph(fit = coxmod, transform = "identity") # test the proportional hazards assumption and compute the Schoenfeld residuals ($y)
+  xx <- zph$x # time points
+  yy <- zph$y # Schoenfeld residuals
   d <- nrow(yy)
   nvar <- ncol(yy)
-  pred.x <- seq(from = (n_days_period/2), to = n_days - (n_days_period/2), length = n_periods)
+  pred.x <- seq(from = min(xx), to = max(xx), length = n)
+    #seq(from = (n_days_period/2), to = n_days - (n_days_period/2), length = n_periods)
   temp <- c(pred.x, xx)
   lmat <- ns(temp, df = 4, intercept = TRUE)
   pmat <- lmat[1:length(pred.x), ]
@@ -97,17 +98,21 @@ get_ve_t <- function(n_days_period, n_days, n_periods, data, indices) {
   return(yhat)
 }
 # bootstrapping with 1000 replications
-n_days <- max(time_points) - min(time_points)
+# n_days <- max(time_points) - min(time_points)
+# n_days_period <- 7
+# n_period <- round(n_days/n_days_period)
 results <- boot(data=mi_data_iiv, statistic=get_ve_t,
-                R=1000, n_days_period = 14, n_days = n_days,
-                n_period = 8)
+                R=1000, n = 40
+                # n_days_period = n_days_period,
+                # n_days = n_days,n_period = n_period
+                )
 
 # view results
 results
 plot(results)
 
 # get 95% confidence interval
-boot.ci(results, type="bca")
+boot.ci(results, index = 1)
 
 
 
