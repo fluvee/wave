@@ -47,7 +47,8 @@ flu_coxmod <- coxph(Surv(DINF_new,influenza) ~ V, data = mi_data_iiv)
 flu_zph <- cox.zph(fit = flu_coxmod, transform = "identity")
 # hypothesis test of whether beta varies over time
 flu_zph$table[1,3]
-# calculate VE
+
+# calculate VE and CI using method from Petrie et al 2016 (JID) ------------------------
 # absolute VE = 1 - exp(beta)
 abs_ve <- 1 - exp(flu_coxmod$coefficients[1])
 # VE(t)
@@ -69,7 +70,48 @@ ve_t_upper <- 1 - exp(pred$fit + 1.96*pred$se.fit)
 # of symptomatic influenza to get average VE(t)
 int <- integrate(f, min(time_points), max(time_points))
 ve_t_avg <- 1 - exp(int$value / (max(time_points) - min(time_points)))
+# ---------------------------------------------------------------------------------------
 
+# calculate VE and CIs using bootstrap --------------------------------------------------
+library(boot)
+# function to obtain VE(t) from the data
+get_ve_t <- function(n_days_period, n_days, n_periods, data, indices) {
+  d <- data[indices,] # allows boot to select sample
+  coxmod <- coxph(Surv(DINF_new,influenza) ~ V, data = d) # fit ordinary Cox propotional hazards model (just for IIV first)
+  flu_zph <- cox.zph(fit = flu_coxmod, transform = "identity") # test the proportional hazards assumption and compute the Schoenfeld residuals ($y)
+  xx <- flu_zph$x
+  yy <- flu_zph$y
+  d <- nrow(yy)
+  nvar <- ncol(yy)
+  pred.x <- seq(from = (n_days_period/2), to = n_days - (n_days_period/2), length = n_periods)
+  temp <- c(pred.x, xx)
+  lmat <- ns(temp, df = 4, intercept = TRUE)
+  pmat <- lmat[1:length(pred.x), ]
+  xmat <- lmat[-(1:length(pred.x)), ]
+  qmat <- qr(xmat)
+
+  # ve estimate
+  yhat.beta <- pmat %*% qr.coef(qmat, yy)
+  yhat <- 1-exp(yhat.beta) # VE estimate
+
+  return(yhat)
+}
+# bootstrapping with 1000 replications
+n_days <- max(time_points) - min(time_points)
+results <- boot(data=mi_data_iiv, statistic=get_ve_t,
+                R=1000, n_days_period = 14, n_days = n_days,
+                n_period = 8)
+
+# view results
+results
+plot(results)
+
+# get 95% confidence interval
+boot.ci(results, type="bca")
+
+
+
+# ---------------------------------------------------------------------------------------
 # output (save for each vaccine)
 # IIV
 first_date <- mi_data_iiv[which(mi_data_iiv$DINF_new == min(time_points)),]$onset_date
