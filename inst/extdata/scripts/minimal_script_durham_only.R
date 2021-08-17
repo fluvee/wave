@@ -26,16 +26,17 @@ devtools::load_all()
 #   you can specify the folder and file names of the input file within the ""
 #   if no path is specified a window will pop up and allow you to choose a file
 #   from your computer
-params <- readParams("./inst/extdata/input/SimVEE_MI_RCT_06_04_00_input.csv")
-
+params <- readParams("./inst/extdata/input/SimVEE_MI_RCT_06_04_06_input.csv")
+params$N <- 5000
 ### run simulation -------------------------------------------------------------
 #   there is an optional path argument for run_simvee(params, path = )
 #   if no path is specified, it will default to current working directory
-# outcomes_dat <- run_simvee(params)
+params$sim <- 100 # change number of sims (if necessary)
+outcomes_dat <- run_simvee(params, path = "inst/extdata/output/")
 
 ### read in outcomes file ------------------------------------------------------
 # you can specify the file name/path of the output file inside ""
-file_path <- "inst/extdata/output/Outcomes_MI_RCT_06_04_00.csv"
+file_path <- "inst/extdata/output/Outcomes_MI_RCT_06_04_06.csv"
 outcomes_dat <- read_csv(file_path)
 
 # add FARI indicator variable
@@ -47,7 +48,7 @@ outcomes_dat1 <- outcomes_dat %>% mutate(FARI = ifelse(DINF == 0, 0, 1),
 
 reject_h0_durham <- 0 # set h0 rejection counter to 0
 rtn <- list()         # empty list for output
-
+slopes <- data.frame(sim = 1:params$sim, slope = c(rep(NA, params$sim)))
 # loop over simulations
 for (i in 1:params$sim){
 
@@ -71,6 +72,8 @@ for (i in 1:params$sim){
                           n_periods = params$NJ, n_days_period = params$NDJ,
                           var = "V") %>%
       mutate(Sim = i, Method = "Durham")
+    fit <- lm(V ~ period, rtn[[i]])
+    slopes [i,2] <- fit$coefficients[2]
   }
 }
 # ------------------------------------------------------------------------------
@@ -81,16 +84,23 @@ for (i in 1:params$sim){
 prop_reject <- reject_h0_durham/params$sim
 prop_reject
 # bind the outputs of each simulation
+# VE estimates
 find_nas <- is.na(rtn)
+length(which(find_nas == TRUE))
 rtn1 <- rtn[!find_nas]
+results <- list(ve = bind_rows(rtn1),
+                waning_rate = slopes
+)
 
-results <- bind_rows(rtn1)
+# waning rate estimates
+mean(slopes$slope, na.rm = TRUE)
+sd(slopes$slope, na.rm = TRUE)
 
 # save output
 saveRDS(results, file = paste0("inst/extdata/output/sim_results_", params$title, ".rds"))
 
 # plot all sims
-p <- ggplot(data = results, aes(x = period, y = V, color = as.factor(Sim))) + #
+p <- ggplot(data = results$ve, aes(x = period, y = V, color = as.factor(Sim))) + #
   geom_line() +
   #geom_ribbon(aes(ymin=lower, ymax=upper), alpha = 0.1, linetype = "dashed") + # , fill = waning_rate
   #facet_wrap(~waning_rate, nrow = 3) +
@@ -98,7 +108,7 @@ p <- ggplot(data = results, aes(x = period, y = V, color = as.factor(Sim))) + #
 p
 
 # summarize results
-summary_results <- results %>%
+summary_results <- results$ve %>%
   select(Sim, period, V) %>%
   group_by(period) %>%
   summarise_at(.vars = "V", .funs = c("mean", "median", "sd")) %>%
