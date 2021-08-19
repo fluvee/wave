@@ -6,6 +6,7 @@
 devtools::load_all() # need to be in wave root directory!
 library(dplyr)
 library(ggplot2)
+library(cowplot)
 #library(readr)
 
 # load outcomes files ----------------------------------------------------------
@@ -54,7 +55,7 @@ p <- ggplot(data = ve_all, aes(x = period, y = mean, color = waning_rate)) + #
               linetype = "blank") +
   facet_wrap(~waning_rate, nrow = 1) +
   labs(y = "VE", x = "Time period") +
-  theme(legend.position = "bottom",
+  theme(legend.position = "none",
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.background = element_blank(),
@@ -86,25 +87,33 @@ summary_wr_06 <- results_06$waning_rate %>%
   )
 
 wr_all <- bind_rows(summary_wr_00, summary_wr_03, summary_wr_06) %>%
-  mutate(waning_rate = c("0%", "3%", "6%")) %>%
-  pivot_longer()
+  mutate(scenario = c("0%", "3%", "6%")) %>%
+  select(-sd) %>%
+  pivot_longer(cols = c(mean, true_waning_rate), names_to = "quantity",
+               values_to = "value") %>%
+  mutate(lower = ifelse(quantity == "true_waning_rate", NA, lower),
+         upper = ifelse(quantity == "true_waning_rate", NA, upper),
+         quantity = ifelse(quantity == "mean", "Mean", "True Waning Rate"))
 
 # plot parameter values
-p2 <- ggplot(data = wr_all, aes(x = waning_rate, y = mean, color = waning_rate)) +
+p2 <- ggplot(data = wr_all, aes(x = scenario, y = value, color = quantity)) +
   geom_point(position=position_dodge(0.5)) +
   geom_errorbar(aes(ymin=lower, ymax=upper), width=.05,
-                              position=position_dodge(0.05)) +
-  geom_point(aes(x = waning_rate, y = true_waning_rate), color = "black") +
-  labs(y = "Mean Waning Rate", x = "Scenario") +
-  theme(legend.position = "bottom",
+                              position=position_dodge(0.5)) +
+  #geom_point(aes(x = waning_rate, y = true_waning_rate), color = "black") +
+  labs(y = "Mean Waning Rate", x = "Scenario", color = "Quantity") +
+  theme(legend.position = "right",
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.background = element_blank(),
         axis.line = element_line(colour = "black"))
 p2
 
+p2a <- plot_grid(p2, NULL, ncol = 2, rel_widths = c(3, 1))
+p_sim <- plot_grid(p, p2a, ncol = 1, rel_heights = c(1.5, 1))
+p_sim
 
-
+ggsave(file = "inst/extdata/output/figure1.jpg", plot = p_sim)
 
 
 
