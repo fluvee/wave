@@ -22,7 +22,7 @@
 #' @import dplyr
 #' @import tidyr
 #' @export
-durham_ve <- function(x, df = 4, n_days, n_periods, n_days_period, var){
+durham_ve <- function(x, df = NULL, n_days, n_periods, n_days_period, var){
   xx <- x$x
   yy <- x$y
   d <- nrow(yy)
