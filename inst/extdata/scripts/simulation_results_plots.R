@@ -62,6 +62,8 @@ p <- ggplot(data = ve_all, aes(x = period, y = mean, color = waning_rate)) + #
         axis.line = element_line(colour = "black"))
 p
 
+ggsave(file = "inst/extdata/output/figure1.jpg", plot = p)
+
 # ------------------------------------------------------------------------------
 
 # summarise results for parameter value plot -----------------------------------
@@ -113,7 +115,7 @@ p2a <- plot_grid(p2, NULL, ncol = 2, rel_widths = c(3, 1))
 p_sim <- plot_grid(p, p2a, ncol = 1, rel_heights = c(1.5, 1))
 p_sim
 
-ggsave(file = "inst/extdata/output/figure1.jpg", plot = p_sim)
+ggsave(file = "inst/extdata/output/figure1_alt.jpg", plot = p_sim)
 
 
 

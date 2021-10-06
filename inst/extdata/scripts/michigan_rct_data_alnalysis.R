@@ -99,17 +99,20 @@ ve_output <- bind_rows(ve_dat_iiv, ve_dat_laiv)
 write_csv(ve_output, file = "VE_est_durham.csv")
 
 # combine data sets for plotting and output
-ve_dat_plot <- ve_output %>%
-  filter(vac_type == "IIV")
-  #mutate(lower = ifelse(lower < -0.25, -0.25, lower))
+ve_dat_plot <- ve_dat_iiv %>%
+  #filter(vac_type == "IIV")
+  mutate(lower = ifelse(lower < -0.5, -0.5, lower))
 
 p_petrie <- ggplot(data = ve_dat_plot, aes(x = date, y = ve)) +
   geom_line() +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha=0.2) +
-  labs(y = "VE(t)", x = "Date", title = "Loess") +
-  scale_y_continuous(limits = c(-5, 1)) +
-  geom_hline(yintercept = 0, linetype = "dashed") +
-  theme_bw() #+
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha=0.1) +
+  labs(y = "VE(t)", x = "Date", title = "Petrie et al.") +
+  scale_y_continuous(limits = c(-0.5, 1)) +
+  #geom_hline(yintercept = 0, linetype = "dashed") +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.line = element_line(colour = "black")) #+
   #facet_grid(. ~ vac_type)
 p_petrie
 
@@ -162,26 +165,29 @@ boot_dat <- data.frame(date = pred_dates,
                        V = results$t0,
                        lower = apply(results$t, 2, quantile, probs = 0.025),
                        upper = apply(results$t, 2, quantile, probs = 0.975)
-                       )
+                       ) %>%
+  mutate(lower = ifelse(lower < -0.5, -0.5, lower))
 fit <- lm(V ~ date, boot_dat)
 
 # plots
 plot(V ~ date, data = boot_dat)
 abline(fit)
-
+s
 p_durham <- ggplot(data = boot_dat, aes(x = date, y = V)) +
   geom_line() +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha=0.1) +
-  labs(y = "VE(t)", x = "Date") + # , title = "Natural Spline"
-  #scale_y_continuous(limits = c(-5, 1)) +
+  labs(y = "VE(t)", x = "Date") + # , title = "Bootstrap"
+  scale_y_continuous(limits = c(-0.5, 1)) +
   #geom_hline(yintercept = 0, linetype = "dashed") +
   #facet_grid(. ~ vac_type) +
-  theme(panel.grid.major = element_blank(),
+  theme(panel.grid.major = elemenst_blank(),
         panel.grid.minor = element_blank(),
         panel.background = element_blank(),
         axis.line = element_line(colour = "black"))
 p_durham
 
 ggsave(filename = "inst/extdata/output/figure2.jpg", plot = p_durham)
+
 p_both <- plot_grid(p_durham, p_petrie)
 p_both
+ggsave(filename = "inst/extdata/output/figure_comparison.jpg", plot = p_both)
