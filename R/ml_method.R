@@ -9,14 +9,14 @@
 #' @keywords wave
 #' @export
 loglik <- function(x, pars){
-  names(pars) <- parameter_names
-  theta_0 <- pars["theta_0"]
-  eta <- pars["eta"]
+  #names(pars) <- parameter_names
+  theta_0 <- pars[1] #pars["theta_0"]
+  eta <- pars[2] #pars["eta"]
   D <- x$n_days
 
   # define empty vectors to store probabilities
   # conditional probabilities
-  pi_0u <-  c(1,rep(0,x$n_days-1))
+  pi_0u <-  c(1,rep(0,D-1))
   pi_0v <- pi_0u
   pi_1u <- pi_0u
   pi_1v <- pi_0u
@@ -30,9 +30,9 @@ loglik <- function(x, pars){
   # loop over days
   #for (d in 2:x$n_days){
     # estimate beta_d0s
-    beta_d0s <- x$num_inf_d_unvac/x$num_susc_d_unvac
+    beta_d0s <- x$n_inf_d_unvac/x$n_susc_d_unvac
     # define theta_d
-    theta_d <- theta_0 + eta * d
+    theta_d <- theta_0 + (eta * seq(from = 1,to = D, by = 1))
     # calculate beta_d1s
     beta_d1s<- theta_d * beta_d0s
 
@@ -43,7 +43,7 @@ loglik <- function(x, pars){
     #   v = vaccinated
     pi_ud0 <- ifelse(1 - beta_d0s <= 0, 0.0001, 1 - beta_d0s)  # bound probability above 0
     pi_vd0 <- ifelse(1 - beta_d1s <= 0, 0.0001, 1 - beta_d1s)  # bound probability above 0
-    pi_ud1 <- beta_d0s
+    pi_ud1 <- ifelse(beta_d0s == 0, 0.0001, beta_d0s)
     pi_vd1 <- ifelse(beta_d1s > 1, 1, beta_d1s)                # bound probability below 1
     # unconditional probabilities: psi_ju & psi_jv, where
     #   j = infection status,
@@ -51,7 +51,7 @@ loglik <- function(x, pars){
     #   u = unvaccinated,
     #   v = vaccinated
     # if (d == 1){
-      psi_ud0 <- pi_udo
+      psi_ud0 <- pi_ud0
       psi_vd0 <- pi_vd0
       psi_ud1 <- pi_ud1
       psi_vd1 <- pi_vd1
@@ -91,52 +91,80 @@ loglik <- function(x, pars){
 #' @param dat data set
 #' @param n_days number of days in the study
 #' @param latent_period length of latent period
+#' @param init_pars vector of initial values for parameters during optimization
+#' @param lower_pars vector of lower bound for parameters during optimization
+#' @param upper_pars vector of upper bound for parameters during optimization
 #' @return list with a tibble of VE estimates for each period (the estimate for each period is the average VE over the days
 #' within each period) and the maximum likelihood estimates of the parameters.
 #' @keywords wave
 #' @import dplyr
 #' @import tidyr
+#' @import DEoptim
 #' @export
 ml_ve <- function(dat,
                   n_days,
-                  latent_period = 1#,
+                  latent_period = 1,
+                  init_pars,
+                  lower_pars = c(0.00001, 0.00001),
+                  upper_pars = c(1, 1)
                   #infectious_period = 4
                   ){
 
-  N <- length(unique(dat$ID))
+  # number of individuals in dat
+  n_indiv <- length(unique(dat$ID))
 
+  # determine day of infection by subtracting latent period
+  #dat$dinf_calc <- ifelse(dat$DINF_new != 999, dat$DINF_new - latent_period, dat$DINF_new)
 
-  for (d in 1:n_days){
-    # calculate which days individuals got infected to be infectious on day d
-    possible_day_of_infection <- (d  - latent_period - infectious_period):(d - latent_period)
-    prev[d] <- length(which(dat$DINF_new %in% possible_day_of_infection))/N
-  }
-  prev <- ifelse(prev == 0, 0.001, prev)
-  x <- list(n = N,
+  # determine number of unvaccinated infections and susceptibles per day
+  dat_tally <- dat %>%
+    filter(V == 0,
+           DINF_new != 999) %>%
+    group_by(DINF_new) %>%
+    tally() %>%
+    mutate(cumsum = cumsum(n),
+           n_susc = n_indiv-lag(cumsum, default = 0)) %>%
+    complete(DINF_new = seq(1, n_days, by=1), fill = list(n = 0,
+                                                           n_susc = NA)) %>%
+    fill(n_susc) %>%
+    filter(DINF_new != 0)
+
+  # for (d in 1:n_days){
+  #   # calculate which days individuals got infected to be infectious on day d
+  #   possible_day_of_infection <- (d  - latent_period - infectious_period):(d - latent_period)
+  #   prev[d] <- length(which(dat$DINF_new %in% possible_day_of_infection))/N
+  # }
+  # prev <- ifelse(prev == 0, 0.001, prev)
+
+  # store outputs in a list for input into loglik()
+  x <- list(n = n_indiv,
             n_days = n_days,
-            n_days_period = n_days_period,
-            prev = prev,
+            n_inf_d_unvac = dat_tally$n,
+            n_susc_d_unvac = dat_tally$n_susc,
             dinf = dat$DINF_new,
             v = dat$V
   )
 
 
   # use DE optim to get initial values
-  # initial <- DEoptim(fn=logLik,
-  #                    x = x,
-  #                    lower = c(0.0001, 0.0001, 0.0001),
-  #                    upper = c(1, 1, 2),
-  #                    control = list(itermax = 100, trace = FALSE)
-  # )
+  # if (is.null(init_pars)){
+  #   init_pars <- DEoptim(fn=logLik,
+  #                      x = x,
+  #                      lower = lower_pars,
+  #                      upper = upper_pars,
+  #                      control = list(itermax = 100, trace = FALSE)
+  #   )
+  # }
   # print(initial$optim$bestmem)
+
   # maximum likelihood estimates ----------------------------------------------
   #tryCatch({
-  mle <- stats::optim(par = c(0.3, 0.4, 1),
+  mle <- stats::optim(par = init_pars,
                fn = loglik,
                x = x,
                method = "L-BFGS-B",
-               lower = c(0.0001, 0.0001, 0.0001),
-               upper = c(1, 1, 2),
+               lower = lower_pars,
+               upper = upper_pars,
                hessian = TRUE
                # control = list(trace = 3,
                #                maxit = 1000,
@@ -145,10 +173,10 @@ ml_ve <- function(dat,
   #}, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
   se <- sqrt(diag(solve(mle$hessian)))
 
-  param_est <- tibble(param = c("alpha", "theta_0", "lambda"), mle = mle$par - c(0,0,1), se = se,
+  param_est <- tibble(param = c("theta_0", "eta"), mle = mle$par - c(0,0,1), se = se,
                       lower = mle - 1.96 * se, upper = mle + 1.96 * se)
 
-  periods <- rep(1:n_periods, each = n_days_period)
+  #periods <- rep(1:n_periods, each = n_days_period)
   ve_dat <- tibble(day = 1:n_days, period = periods, ve = 1-(mle$par[2] + (mle$par[3] - 1) * .data$day)) %>%
     select(-.data$day) %>%
     group_by(.data$period) %>%
