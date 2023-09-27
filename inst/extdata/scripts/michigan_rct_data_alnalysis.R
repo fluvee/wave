@@ -85,16 +85,16 @@ ve_dat_iiv <- tibble(time_point = time_points,
                      vac_type = "IIV")
 
 # LAIV
-first_date <- mi_data_laiv[which(mi_data_laiv$DINF_new == min(time_points)),]$onset_date
-pred_dates <- first_date + (time_points - min(time_points))
-ve_dat_laiv <- tibble(time_point = time_points,
-                      date = pred_dates,
-                      ve = ve_t,
-                      lower = ve_t_upper,
-                      upper = ve_t_lower,
-                      vac_type = "LAIV")
+# first_date <- mi_data_laiv[which(mi_data_laiv$DINF_new == min(time_points)),]$onset_date
+# pred_dates <- first_date + (time_points - min(time_points))
+# ve_dat_laiv <- tibble(time_point = time_points,
+#                       date = pred_dates,
+#                       ve = ve_t,
+#                       lower = ve_t_upper,
+#                       upper = ve_t_lower,
+#                       vac_type = "LAIV")
 # for output
-ve_output <- bind_rows(ve_dat_iiv, ve_dat_laiv)
+ve_output <- ve_dat_iiv #bind_rows(ve_dat_iiv, ve_dat_laiv)
 write_csv(ve_output, file = "VE_est_durham.csv")
 
 # combine data sets for plotting and output
@@ -129,7 +129,6 @@ results <- boot(data=mi_data_iiv, statistic=get_ve_t,
                 )
 
 # view results
-#results
 plot(results)
 
 # get 95% confidence interval
