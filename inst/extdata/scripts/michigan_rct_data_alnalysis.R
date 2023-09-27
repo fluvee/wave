@@ -25,9 +25,10 @@ mi_data1 <- mi_data %>%
 # filter just IIV and placebo
 mi_data_iiv <- mi_data1 %>%
   filter(vaccine_type != "LAIV")
+
 # filter just LAIV and placebo
-mi_data_laiv <- mi_data1 %>%
-  filter(vaccine_type != "IIV")
+# mi_data_laiv <- mi_data1 %>%
+#   filter(vaccine_type != "IIV")
 
 # method from Durham et al. 1988 ------------------------------------------------------
 # This method is based on smoothing scaled residuals from the Cox proportional hazard
@@ -40,7 +41,7 @@ mi_data_laiv <- mi_data1 %>%
 # This allows testing the hypothesis of no VE waning and the estimation of TVE at each
 # time point.
 
-# fit ordinary Cox propotional hazards model (just for IIV first)
+# fit ordinary Cox propotional hazards model (IIV vs. placebo)
 flu_coxmod <- coxph(Surv(DINF_new,influenza) ~ V, data = mi_data_iiv)
 
 # test the proportional hazards assumption and compute the Schoenfeld residuals
@@ -49,14 +50,12 @@ flu_zph <- cox.zph(fit = flu_coxmod, transform = "identity")
 flu_zph$table[1,3]
 
 # calculate VE and CI using method from Petrie et al 2016 (JID) ------------------------
-# absolute VE = 1 - exp(beta)
 abs_ve <- 1 - exp(flu_coxmod$coefficients[1])
 # VE(t)
 time_points <- flu_zph$x # time points
 schoenfeld <- flu_zph$y # Schoenfeld residuals
 
 # fit loess to Schoenfeld residuals + beta
-# this approach is from Petrie et al. 2016 (JID)
 for_loess <- data.frame(x = time_points,
                         V = schoenfeld[,1] + flu_coxmod$coefficients[1])
 
@@ -119,29 +118,6 @@ p_petrie
 # ---------------------------------------------------------------------------------------
 # calculate VE and CIs using bootstrap --------------------------------------------------
 library(boot)
-# function to obtain VE(t) from the data
-get_ve_t <- function(n, data, indices) {
-  d <- data[indices,] # allows boot to select sample
-  coxmod <- coxph(Surv(DINF_new,influenza) ~ V, data = d) # fit ordinary Cox propotional hazards model (just for IIV first)
-  zph <- cox.zph(fit = coxmod, transform = "identity") # test the proportional hazards assumption and compute the Schoenfeld residuals ($y)
-  xx <- zph$x # time points
-  yy <- zph$y # Schoenfeld residuals
-  #d <- nrow(yy)
-  nvar <- ncol(yy)
-  pred.x <- seq(from = min(xx), to = max(xx), length = n)
-    #seq(from = (n_days_period/2), to = n_days - (n_days_period/2), length = n_periods)
-  temp <- c(pred.x, xx)
-  lmat <- ns(temp, df = 2, intercept = TRUE)
-  pmat <- lmat[1:length(pred.x), ]
-  xmat <- lmat[-(1:length(pred.x)), ]
-  qmat <- qr(xmat)
-
-  # ve estimate
-  yhat.beta <- pmat %*% qr.coef(qmat, yy)
-  yhat <- 1-exp(yhat.beta) # VE estimate
-
-  return(yhat)
-}
 # bootstrapping with 1000 replications
 # n_days <- max(time_points) - min(time_points)
 # n_days_period <- 7
