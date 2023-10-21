@@ -24,11 +24,11 @@ params <- readParams("./inst/extdata/input/SimVEE_MI_RCT_06_04_00_input.csv")
 ### run simulation
 #   there is an optional path argument for run_simvee(params, path = )
 #   if no path is specified, it will default to current working directory
-outcomes_dat <- run_simvee(params)
+# outcomes_dat <- run_simvee(params, path = "/inst/extdata/output/")
 
 ### read in outcomes file
 # you can specify the file name/path of the output file inside ""
-outcomes_dat <- read.csv("./inst/extdata/output/Outcomes_ban_406_S10.csv")
+outcomes_dat <- read.csv("./inst/extdata/output/Outcomes_ban_406.csv")
 
 # add FARI indicator variable
 outcomes_dat <- outcomes_dat %>% mutate(FARI = ifelse(DINF == 0, 0, 1),
