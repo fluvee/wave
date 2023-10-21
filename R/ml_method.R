@@ -80,12 +80,13 @@ loglik <- function(x, pars){
 #' @param latent_period length of latent period
 #' @param infectious_period length of infectious period
 #' @return list with a tibble of VE estimates for each period (the estimate for each period is the average VE over the days
-#' within each period) and the maximu likelihood estimates of the parameters.
+#' within each period) and the maximum likelihood estimates of the parameters.
 #' @keywords wave
 #' @import dplyr
 #' @import tidyr
 #' @export
-ml_ve <- function(dat, n_days, n_periods, n_days_period, latent_period = 1, infectious_period = 4){
+ml_ve <- function(dat, n_days, n_periods, n_days_period, latent_period = 1,
+                  infectious_period = 4){
 
   N <- length(unique(dat$ID))
   prev <- numeric(n_days)
