@@ -35,13 +35,18 @@ params06 <- readParams("./inst/extdata/input/SimVEE_MI_RCT_06_04_06_input.csv")
 
 # Read in outcomes files
 #   you can specify the file name/path of the output file inside ""
-outcomes_dat00 <- read.csv("./inst/extdata/output/Outcomes_ban_400.csv")
-outcomes_dat03 <- read.csv("./inst/extdata/output/Outcomes_ban_403.csv")
-outcomes_dat06 <- read.csv("./inst/extdata/output/Outcomes_ban_406.csv")
+outcomes_dat00 <- read.csv("./inst/extdata/output/Outcomes_MI_RCT_06_04_00.csv")
+outcomes_dat03 <- read.csv("./inst/extdata/output/Outcomes_MI_RCT_06_04_03.csv")
+outcomes_dat06 <- read.csv("./inst/extdata/output/Outcomes_MI_RCT_06_04_06.csv")
 
 # select which input/putput files to use for estimation
 params <- params00
 dat <- outcomes_dat00
+
+# add FARI indicator variable
+dat1 <- dat %>% mutate(FARI = ifelse(DINF == 0, 0, 1),
+                       DINF_new = ifelse(DINF == 0, 999, DINF))
+
 # ------------------------------------------------------------------------------
 
 # Estimate waning VE for each simulation ---------------------------------------
@@ -50,11 +55,15 @@ for (i in 1:params$sim){
   print(i)
 
   # subset data for each simulation
-  dat1 <- dat %>% filter(.data$Sim == i)
+  dat2 <- dat1 %>% filter(.data$Sim == i)
 
   # estimate ve waning using ML method
   #   we'll use the version without MCMC
-  temp <- ml_ve(dat1, n_days = params$ND, n_periods = params$NJ,
+  #   the parameters estimated are:
+  #   alpha = pars["alpha"]
+  #   theta_0 = pars["theta_0"]
+  #   phi = pars["phi"]
+  temp <- ml_ve(dat = dat2, n_days = params$ND, n_periods = params$NJ,
                 n_days_period = params$NDJ,
                 latent_period = 1, infectious_period = 4)
 temp3a <- temp3$ve_dat %>%
