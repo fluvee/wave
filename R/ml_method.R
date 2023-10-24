@@ -13,6 +13,8 @@ loglik <- function(x, pars){
   alpha = pars[1]    #pars["alpha"]
   theta_0 = pars[2]  #pars["theta_0"]
   phi = pars[3]      #pars["phi"]
+  # for debugging
+  #print(pars)
 
   # initialise unconditional probabilities
   pi_0u <- c(1,rep(0,x$n_days-1))
@@ -75,8 +77,11 @@ loglik <- function(x, pars){
     }
   }
 
-  return(-sum(log(Li)))
+  # for debugging
   #print(Li)
+
+  # output
+  return(-sum(log(Li)))
 }
 
 # ----------------------------------------------------------
@@ -131,7 +136,7 @@ ml_ve <- function(dat, n_days, n_periods, n_days_period, latent_period = 1,
                fn = loglik,
                x = x,
                method = "L-BFGS-B",
-               lower = c(0.0001, 0.0001, 0.0001),
+               lower = c(0.0001, 0.0001, 1),
                upper = c(1, 1, 2),
                hessian = TRUE
                # control = list(trace = 3,
