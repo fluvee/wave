@@ -9,19 +9,29 @@
 #' @keywords wave
 #' @export
 loglik <- function(x, pars){
-  names(pars) <- parameter_names
-  alpha = pars["alpha"]
-  theta_0 = pars["theta_0"]
-  phi = pars["phi"]
+  #names(pars) <- parameter_names
+  alpha = pars[1]    #pars["alpha"]
+  theta_0 = pars[2]  #pars["theta_0"]
+  phi = pars[3]      #pars["phi"]
 
-  pi_0u <- pi_0v <- pi_1u <- pi_1v <- c(1,rep(0,x$n_days-1))
-  psi_0u <- psi_0v <- psi_1u <- psi_1v <- pi_0u
+  # initialise unconditional probabilities
+  pi_0u <- c(1,rep(0,x$n_days-1))
+  pi_0v <- c(1,rep(0,x$n_days-1))
+  pi_1u <- c(1,rep(0,x$n_days-1))
+  pi_1v <- c(1,rep(0,x$n_days-1))
+
+  # initialise conditional probabilities
+  psi_0u <- c(1,rep(0,x$n_days-1))
+  psi_0v <- c(1,rep(0,x$n_days-1))
+  psi_1u <- c(1,rep(0,x$n_days-1))
+  psi_1v <- c(1,rep(0,x$n_days-1))
+  pi_0u  <- c(1,rep(0,x$n_days-1))
 
   #initialise period
   period <- 1
   period_start_days <- seq(1, x$n_days, by = x$n_days_period)
   # loop over days
-  for (d in 2:x$n_days){
+  for (d in 1:x$n_days){
     if(d %in% period_start_days){period <- period + 1}
     #print(period)
     lambda <- phi - 1
@@ -66,6 +76,7 @@ loglik <- function(x, pars){
   }
 
   return(-sum(log(Li)))
+  #print(Li)
 }
 
 # ----------------------------------------------------------
@@ -96,7 +107,7 @@ ml_ve <- function(dat, n_days, n_periods, n_days_period, latent_period = 1,
     possible_day_of_infection <- (d  - latent_period - infectious_period):(d - latent_period)
     prev[d] <- length(which(dat$DINF_new %in% possible_day_of_infection))/N
   }
-  prev <- ifelse(prev == 0, 0.001, prev)
+  prev <- ifelse(prev == 0, 0.0001, prev)
   x <- list(n = N,
             n_days = n_days,
             n_days_period = n_days_period,
@@ -133,14 +144,8 @@ ml_ve <- function(dat, n_days, n_periods, n_days_period, latent_period = 1,
   param_est <- tibble(param = c("alpha", "theta_0", "lambda"), mle = mle$par - c(0,0,1), se = se,
                       lower = mle - 1.96 * se, upper = mle + 1.96 * se)
 
-  periods <- rep(1:n_periods, each = n_days_period)
-  ve_dat <- tibble(day = 1:n_days, period = periods, ve = 1-(mle$par[2] + (mle$par[3] - 1) * .data$day)) %>%
-    select(-.data$day) %>%
-    group_by(.data$period) %>%
-    summarise_all(.funs = mean)
-
   # output
-  rtn <- list(param_est = param_est, ve_dat = ve_dat)
+  rtn <- param_est
 
   return(rtn)
 }
