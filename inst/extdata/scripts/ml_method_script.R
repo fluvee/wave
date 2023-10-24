@@ -40,13 +40,16 @@ outcomes_dat03 <- read.csv("./inst/extdata/output/Outcomes_MI_RCT_06_04_03.csv")
 outcomes_dat06 <- read.csv("./inst/extdata/output/Outcomes_MI_RCT_06_04_06.csv")
 
 # select which input/putput files to use for estimation
-params <- params00
-dat <- outcomes_dat00
+my_params <- params00
+my_dat <- outcomes_dat00
+lambda_true <- 0
 
 # add FARI indicator variable
-dat1 <- dat %>% mutate(FARI = ifelse(DINF == 0, 0, 1),
+dat1 <- my_dat %>% mutate(FARI = ifelse(DINF == 0, 0, 1),
                        DINF_new = ifelse(DINF == 0, 999, DINF))
 
+# initialise
+reject_h0 <- 0
 # ------------------------------------------------------------------------------
 
 # Estimate waning VE for each simulation ---------------------------------------
@@ -63,25 +66,66 @@ for (i in 1:params$sim){
   #   alpha = pars["alpha"]
   #   theta_0 = pars["theta_0"]
   #   phi = pars["phi"]
-  temp <- ml_ve(dat = dat2, n_days = params$ND, n_periods = params$NJ,
-                n_days_period = params$NDJ,
-                latent_period = 1, infectious_period = 4)
-temp3a <- temp3$ve_dat %>%
-  mutate(Sim = i, Method = "ML")
+  param_estimates <- ml_ve(dat = dat2, n_days = params$ND, n_periods = params$NJ,
+    n_days_period = params$NDJ, latent_period = 1, infectious_period = 4)
 
-ve_est <- bind_rows(ve_est,temp3a)
+  # store parameter estimates for each simulation
+  # mle parameter estimates
+  mle_est <- param_estimates %>%
+    mutate(Sim = i,Method = "ML") %>%
+    select(Sim, param, mle, Method)
 
-# proportion of sims where null hypothesis is rejected
-reject_h0_ml <- reject_h0_ml + ifelse(temp3$param_est$lambda[2] > 0, 1, 0)
+  # estimate VE from MLE parameters for each day
+  ve_dat <- tibble(day = 1:n_days,
+                   period = rep(1:n_periods, each = n_days_period),
+                   ve = 1-(mle$par[2] + (mle$par[3] - 1) * .data$day)
+                   )
 
-# mle parameter estimates
-temp3b <- temp3$param_est %>%
-  mutate(Sim = i,
-         Method = "ML",
-         value = c("mle", "quantile_2.5", "quantile_97.5"))
+  # store daily VE estimates for each simulation
+  daily_ve <- ve_dat %>%
+    mutate(Sim = i, Method = "ML") %>%
+    select(Sim, day, period, ve, Method)
 
+  # amend results for each successive simulation
+  if (i > 1){
+    df_mle_est <- bind_rows(df_mle_est, mle_est)
+    df_ve_est <- bind_rows(df_ve_est, daily_ve)
+  } else {
+    df_mle_est <- mle_est
+    df_ve_est <- daily_ve
+    }
 
-if (i > 1){
-  mle_param_est <- bind_rows(mle_param_est,temp3b)
-} else {mle_param_est <- temp3b}
+  # calculate number of sims where null hypothesis is rejected
+  # that is, if lambda is significantly different from its true value
+  # the null hypothesis is ACCEPTED if (lower, upper) CONTAINS the true value
+  # reject_h0 <- reject_h0 +
+  #   ifelse(lambda_true %in% param_estimates$lower[3]:param_estimates$lower[3], 0, 1)
 }
+
+# Post process results after MLE estimation for each simulation ----------------
+# get mean MLE and 95% bounds for each parameter
+mean_mle_est <- df_mle_est %>%
+  group_by(param) %>%
+  summarise(mean = mean(mle),
+            q025 = quantile(mle, probs = c(0.025)),
+            q975 = quantile(mle, probs = c(0.975))
+            )
+
+# get mean and 95% confidence bounds for daily VE
+mean_ve_est <- df_ve_est %>%
+  group_by(day) %>%
+  summarise(mean = mean(ve),
+            q025 = quantile(ve, probs = c(0.025)),
+            q975 = quantile(ve, probs = c(0.975))
+  )
+
+ve_plot <- ggplot(data = mean_ve_est, aes(x = day, y = mean)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = q025, ymax = q975), alpha = 0.1) +
+  labs(y = "VE(t)", x = "Day",) +
+  #scale_y_continuous(limits = c(-0.5, 1)) +
+  #geom_hline(yintercept = 0, linetype = "dashed") +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.line = element_line(colour = "black"))
