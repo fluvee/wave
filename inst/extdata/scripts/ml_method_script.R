@@ -43,7 +43,7 @@ outcomes_dat06 <- read.csv("./inst/extdata/output/Outcomes_MI_RCT_06_04_06.csv")
 my_params <- params00
 my_dat <- outcomes_dat00
 lambda_true <- 0
-
+theta_0_true <- 0.4
 # add FARI indicator variable
 dat1 <- my_dat %>% mutate(FARI = ifelse(DINF == 0, 0, 1),
                        DINF_new = ifelse(DINF == 0, 999, DINF))
@@ -78,7 +78,7 @@ for (i in 1:params$sim){
   # estimate VE from MLE parameters for each day
   ve_dat <- tibble(day = 1:n_days,
                    period = rep(1:n_periods, each = n_days_period),
-                   ve = 1-(mle$par[2] + (mle$par[3] - 1) * .data$day)
+                   ve = 1-(mle_est$mle[2] + (mle_est$mle[3] * .data$day))
                    )
 
   # store daily VE estimates for each simulation
@@ -123,9 +123,10 @@ ve_plot <- ggplot(data = mean_ve_est, aes(x = day, y = mean)) +
   geom_line() +
   geom_ribbon(aes(ymin = q025, ymax = q975), alpha = 0.1) +
   labs(y = "VE(t)", x = "Day",) +
-  #scale_y_continuous(limits = c(-0.5, 1)) +
-  #geom_hline(yintercept = 0, linetype = "dashed") +
+  scale_y_continuous(limits = c(0, 1)) +
+  geom_hline(yintercept = 1 - theta_0_true, linetype = "dashed") +
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.background = element_blank(),
         axis.line = element_line(colour = "black"))
+ve_plot
