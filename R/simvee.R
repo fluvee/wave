@@ -32,7 +32,7 @@ simvee <- function(params, simNum) {
   V <-  rep(0, params$N)
   DINF <-  rep(0, params$N)
 
-  subject <- data.frame(ID=ID, X=X, V=V, DINF=DINF)
+  subject <- data.frame(SIM = simNum, ID=ID, X=X, V=V, DINF=DINF)
 
   ## SubjectY goes from d=0 to d=ND
   subjectY <- matrix(NA, nrow=params$N, ncol=params$ND+1)
