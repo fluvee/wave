@@ -15,7 +15,7 @@ run_simvee <- function(params, path = getwd()){
     results <- simvee(params, i)
 
     if (params$population_report_file == TRUE) {
-      temp_population_report <- cbind("Sim"=i, results$subject)
+      temp_population_report <- results$subject
       if (i > 1) {
         population_report <- rbind(population_report, temp_population_report)
       }
@@ -25,8 +25,8 @@ run_simvee <- function(params, path = getwd()){
     }
 
     if (params$detailed_file == TRUE) {
-      temp_detailed <- cbind(i, results$subject, results$subjectY)
-      colnames(temp_detailed) <- c("sim", names(results$subject), paste0("D",seq(0,params$ND)))
+      temp_detailed <- cbind(results$subject, results$subjectY)
+      colnames(temp_detailed) <- c(names(results$subject), paste0("D",seq(0,params$ND)))
       if (i > 1) {
         detailed = rbind(detailed, temp_detailed)
       }
