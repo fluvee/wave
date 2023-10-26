@@ -7,7 +7,7 @@
 # Load required packages
 library(dplyr)
 library(foreign)
-library(survival)
+#library(survival)
 library(splines)
 #library(timereg)
 library(ggplot2)
@@ -31,13 +31,15 @@ params06 <- readParams("./inst/extdata/input/SimVEE_MI_RCT_06_04_06_input.csv")
 # Run simulation (or alternatively read in previously output sim outcomes file)
 #   there is an optional path argument for run_simvee(params, path = )
 #   if no path is specified, it will default to current working directory
-# outcomes_dat <- run_simvee(params, path = "/inst/extdata/output/")
+# outcomes_dat00 <- run_simvee(params00, path = "./inst/extdata/output")
+# outcomes_dat03 <- run_simvee(params03, path = "./inst/extdata/output")
+# outcomes_dat06 <- run_simvee(params06, path = "./inst/extdata/output")
 
 # Read in outcomes files
 #   you can specify the file name/path of the output file inside ""
-outcomes_dat00 <- read.csv("./inst/extdata/output/Outcomes_MI_RCT_06_04_00.csv")
-outcomes_dat03 <- read.csv("./inst/extdata/output/Outcomes_MI_RCT_06_04_03.csv")
-outcomes_dat06 <- read.csv("./inst/extdata/output/Outcomes_MI_RCT_06_04_06.csv")
+outcomes_dat00 <- read.csv("./inst/extdata/output/Outcomes_MI_RCT_06_04_00_sim1000.csv")
+outcomes_dat03 <- read.csv("./inst/extdata/output/Outcomes_MI_RCT_06_04_03_sim1000.csv")
+outcomes_dat06 <- read.csv("./inst/extdata/output/Outcomes_MI_RCT_06_04_06_sim1000.csv")
 
 # select which input/putput files to use for estimation
 my_params <- params00
@@ -54,7 +56,7 @@ reject_h0 <- 0
 
 # Estimate waning VE for each simulation ---------------------------------------
 # loop through simulations
-for (i in 1:params$sim){
+for (i in 1:my_params$sim){
   print(i)
 
   # subset data for each simulation
@@ -66,8 +68,8 @@ for (i in 1:params$sim){
   #   alpha = pars["alpha"]
   #   theta_0 = pars["theta_0"]
   #   phi = pars["phi"]
-  param_estimates <- ml_ve(dat = dat2, n_days = params$ND, n_periods = params$NJ,
-    n_days_period = params$NDJ, latent_period = 1, infectious_period = 4)
+  param_estimates <- ml_ve(dat = dat2, n_days = my_params$ND, n_periods = my_params$NJ,
+    n_days_period = my_params$NDJ, latent_period = 1, infectious_period = 4)
 
   # store parameter estimates for each simulation
   # mle parameter estimates
