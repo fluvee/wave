@@ -78,8 +78,8 @@ for (i in 1:my_params$sim){
     select(Sim, param, mle, Method)
 
   # estimate VE from MLE parameters for each day
-  ve_dat <- tibble(day = 1:n_days,
-                   period = rep(1:n_periods, each = n_days_period),
+  ve_dat <- tibble(day = 1:my_params$ND,
+                   period = rep(1:my_params$NJ, each = my_params$NDJ),
                    ve = 1-(mle_est$mle[2] + (mle_est$mle[3] * .data$day))
                    )
 
