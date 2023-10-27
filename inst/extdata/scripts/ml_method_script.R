@@ -37,9 +37,9 @@ params06 <- readParams("./inst/extdata/input/SimVEE_MI_RCT_06_04_06_input.csv")
 
 # Read in outcomes files
 #   you can specify the file name/path of the output file inside ""
-outcomes_dat00 <- read.csv("./inst/extdata/output/Outcomes_MI_RCT_06_04_00_sim1000.csv")
-outcomes_dat03 <- read.csv("./inst/extdata/output/Outcomes_MI_RCT_06_04_03_sim1000.csv")
-outcomes_dat06 <- read.csv("./inst/extdata/output/Outcomes_MI_RCT_06_04_06_sim1000.csv")
+outcomes_dat00 <- read.csv("./inst/extdata/output/Outcomes_MI_RCT_06_04_00.csv")
+outcomes_dat03 <- read.csv("./inst/extdata/output/Outcomes_MI_RCT_06_04_03.csv")
+outcomes_dat06 <- read.csv("./inst/extdata/output/Outcomes_MI_RCT_06_04_06.csv")
 
 # select which input/putput files to use for estimation
 my_params <- params00
@@ -109,6 +109,7 @@ for (i in 1:my_params$sim){
 mean_mle_est <- df_mle_est %>%
   group_by(param) %>%
   summarise(mean = mean(mle),
+            median = median(mle),
             q025 = quantile(mle, probs = c(0.025)),
             q975 = quantile(mle, probs = c(0.975))
             )
@@ -117,10 +118,12 @@ mean_mle_est <- df_mle_est %>%
 mean_ve_est <- df_ve_est %>%
   group_by(day) %>%
   summarise(mean = mean(ve),
+            median = median(ve),
             q025 = quantile(ve, probs = c(0.025)),
             q975 = quantile(ve, probs = c(0.975))
   )
 
+# plot of mean VE and confidence bounds
 ve_plot <- ggplot(data = mean_ve_est, aes(x = day, y = mean)) +
   geom_line() +
   geom_ribbon(aes(ymin = q025, ymax = q975), alpha = 0.1) +
@@ -132,3 +135,14 @@ ve_plot <- ggplot(data = mean_ve_est, aes(x = day, y = mean)) +
         panel.background = element_blank(),
         axis.line = element_line(colour = "black"))
 ve_plot
+
+# line plot of all VE estimates
+ve_plot_all <- ggplot(data = df_ve_est, aes(x = day, y = ve, color = as.factor(Sim))) +
+  geom_line() +
+  geom_hline(yintercept = 1 - theta_0_true, linetype = "dashed") +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.line = element_line(colour = "black"),
+        legend.position = "none")
+ve_plot_all
