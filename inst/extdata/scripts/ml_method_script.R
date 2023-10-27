@@ -86,7 +86,9 @@ for (i in 1:my_params$sim){
   # store daily VE estimates for each simulation
   daily_ve <- ve_dat %>%
     mutate(Sim = i, Method = "ML") %>%
-    select(Sim, day, period, ve, Method)
+    select(Sim, day, period, ve, Method) %>%
+    # if VE is negative, change to 0
+    mutate(ve = if_else(ve < 0, 0, ve))
 
   # amend results for each successive simulation
   if (i > 1){
@@ -124,11 +126,11 @@ mean_ve_est <- df_ve_est %>%
   )
 
 # plot of mean VE and confidence bounds
-ve_plot <- ggplot(data = mean_ve_est, aes(x = day, y = mean)) +
+ve_plot <- ggplot(data = mean_ve_est, aes(x = day, y = median)) +
   geom_line() +
   geom_ribbon(aes(ymin = q025, ymax = q975), alpha = 0.1) +
   labs(y = "VE(t)", x = "Day",) +
-  scale_y_continuous(limits = c(0, 1)) +
+  #scale_y_continuous(limits = c(0, 1)) +
   geom_hline(yintercept = 1 - theta_0_true, linetype = "dashed") +
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
@@ -146,3 +148,17 @@ ve_plot_all <- ggplot(data = df_ve_est, aes(x = day, y = ve, color = as.factor(S
         axis.line = element_line(colour = "black"),
         legend.position = "none")
 ve_plot_all
+
+
+### Debugging
+# look at the simulations where mle of lambda is positive (for case where
+# waning rate = 0)
+# find simulation numbers where lambda_hat > 0
+lambda_gt_0 <- df_mle_est %>% filter(param == "lambda", mle > 0)
+
+# compare sims where lambda_hat = 0 and lambda_hat > 0
+sim1 <- dat1 %>% filter(Sim == 1)    # lambda_hat = 0
+sim2 <- dat1 %>% filter(Sim == 194)    # lambda_hat > 0
+
+hist(sim1$DINF[sim1$DINF > 0])
+hist(sim2$DINF[sim2$DINF > 0])
