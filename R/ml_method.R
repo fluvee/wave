@@ -12,7 +12,7 @@ loglik <- function(x, pars){
   #names(pars) <- parameter_names
   # alpha = pars[1]    #pars["alpha"]
   theta_0 = pars[1]  # baseline vaccine efficacy
-  eta = pars[2]   # waning rate
+  lambda = pars[2]   # 1- waning rate
   # for debugging
   #print(pars)
 
@@ -42,7 +42,7 @@ loglik <- function(x, pars){
   for (d in 1:x$n_days){
     if(d %in% period_start_days){period <- period + 1}
     #print(period)
-    #lambda <- phi - 1
+    eta <- lambda - 1
     # estimate hazard of infection in unvaccinated for each day
     #   the ratio of the number of unvaccinated susceptible persons who became
     #   infected on day d to the total number of unvaccinated susceptible
@@ -149,11 +149,11 @@ ml_ve <- function(dat, n_days, n_periods, n_days_period, latent_period = 1,
   # print(initial$optim$bestmem)
   # maximum likelihood estimates ----------------------------------------------
   #tryCatch({
-  mle <- stats::optim(par = c(0.4, 0),
+  mle <- stats::optim(par = c(0.4, 1),
                fn = loglik,
                x = x,
                method = "L-BFGS-B",
-               lower = c(0.0001, 0),
+               lower = c(0.0001, 1.5),
                upper = c(1, 1),
                hessian = TRUE
                # control = list(trace = 3,
@@ -163,7 +163,7 @@ ml_ve <- function(dat, n_days, n_periods, n_days_period, latent_period = 1,
   #}, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
   se <- sqrt(diag(solve(mle$hessian)))
 
-  param_est <- tibble(param = c("theta_0", "eta"), mle = mle$par, se = se,
+  param_est <- tibble(param = c("theta_0", "eta"), mle = 1 - mle$par, se = se,
                       lower = mle - 1.96 * se, upper = mle + 1.96 * se)
 
   # output
