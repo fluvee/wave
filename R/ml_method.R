@@ -10,24 +10,30 @@
 #' @export
 loglik <- function(x, pars){
   #names(pars) <- parameter_names
-  alpha = pars[1]    #pars["alpha"]
-  theta_0 = pars[2]  #pars["theta_0"]
-  phi = pars[3]      #pars["phi"]
+  # alpha = pars[1]    #pars["alpha"]
+  theta_0 = pars[1]  # baseline vaccine efficacy
+  eta = pars[2]   # waning rate
   # for debugging
   #print(pars)
 
+  # initialise betas
+  beta_d0 <- c(1,rep(0,x$n_days))
+
   # initialise unconditional probabilities
-  pi_0u <- c(1,rep(0,x$n_days-1))
-  pi_0v <- c(1,rep(0,x$n_days-1))
-  pi_1u <- c(1,rep(0,x$n_days-1))
-  pi_1v <- c(1,rep(0,x$n_days-1))
+  pi_id00 <- c(1,rep(0,x$n_days-1))
+  pi_id01 <- c(1,rep(0,x$n_days-1))
+  pi_id02 <- c(1,rep(0,x$n_days-1))
+
+  pi_id10 <- c(1,rep(0,x$n_days-1))
+  pi_id11 <- c(1,rep(0,x$n_days-1))
+  pi_id12 <- c(1,rep(0,x$n_days-1))
 
   # initialise conditional probabilities
-  psi_0u <- c(1,rep(0,x$n_days-1))
-  psi_0v <- c(1,rep(0,x$n_days-1))
-  psi_1u <- c(1,rep(0,x$n_days-1))
-  psi_1v <- c(1,rep(0,x$n_days-1))
-  pi_0u  <- c(1,rep(0,x$n_days-1))
+  psi_id00 <- c(1,rep(0,x$n_days-1))
+  psi_id01 <- c(1,rep(0,x$n_days-1))
+  psi_id10 <- c(1,rep(0,x$n_days-1))
+  psi_id11 <- c(1,rep(0,x$n_days-1))
+
 
   #initialise period
   period <- 1
@@ -36,31 +42,41 @@ loglik <- function(x, pars){
   for (d in 1:x$n_days){
     if(d %in% period_start_days){period <- period + 1}
     #print(period)
-    lambda <- phi - 1
-    theta_d <- theta_0 + lambda * period
-    alpha_d <- alpha * x$prev[d]
-    # conditional probabilities: pi_ju & pi_jv, where
-    #   j = infection status,
-    #   u = unvaccinated,
-    #   v = vaccinated
-    pi_0u[d] <- ifelse(1 - alpha_d < 0, 0.0001, 1 - alpha_d)
-    pi_0v[d] <- ifelse(1 - alpha_d * theta_d < 0, 0.0001, 1 - alpha_d * theta_d)
-    pi_1u[d] <- alpha_d
-    pi_1v[d] <- ifelse(alpha_d * theta_d > 1, 1, alpha_d * theta_d)
-    # unconditional probabilities: psi_ju & psi_jv, where
-    #   j = infection status,
-    #   u = unvaccinated,
-    #   v = vaccinated
+    #lambda <- phi - 1
+    # estimate hazard of infection in unvaccinated for each day
+    #   the ratio of the number of unvaccinated susceptible persons who became
+    #   infected on day d to the total number of unvaccinated susceptible
+    #   persons at the beginning of that day
+    beta_d0[d] <- length(which(x$dinf == d & x$v == 0)) / length(which(x$dinf == 999 & x$v == 0))
+    theta_d <- theta_0 + eta * d #period
+
+    # conditional probabilities: pi_idvj = P(Y_idv = j|Y_i(d-1)v = 0)
+    #.  i = person
+    #   d = day
+    #   v = vaccination status (v = 0,1)
+    #   j = infection status (j = 0,1,2)
+
+    # v = 0
+    pi_id00[d] <- 1 - beta_d0[d]
+    pi_id01[d] <- beta_d0[d]
+    pi_id02[d] <- 0
+
+    # v = 1
+    pi_id10[d] <- 1 - theta_d * beta_d0[d]
+    pi_id11[d] <- theta_d * beta_d0[d]
+    pi_id12[d] <- 0
+
+    # unconditional probabilities: psi_idvj
     if (d == 1){
-      psi_0u[d] <- pi_0u[d]
-      psi_0v[d] <- pi_0v[d]
-      psi_1u[d] <- pi_1u[d]
-      psi_1v[d] <- pi_1v[d]
+      psi_id00[d] <- pi_id00[d]
+      psi_id01[d] <- pi_id01[d]
+      psi_id10[d] <- pi_id10[d]
+      psi_id11[d] <- pi_id11[d]
     } else {
-      psi_0u[d] <- pi_0u[d] * psi_0u[d-1]          # not infected, unvaccinated
-      psi_0v[d] <- pi_0v[d] * psi_0v[d-1]          # not infected, vaccinated
-      psi_1u[d] <- pi_1u[d] * psi_0u[d-1]          # infected, unvaccinated
-      psi_1v[d] <- pi_1v[d] * psi_0v[d-1]          # infected, vaccinated
+      psi_id00[d] <- pi_id00[d] * psi_id00[d-1]          # not infected, unvaccinated
+      psi_id10[d] <- pi_id10[d] * psi_id10[d-1]          # not infected, vaccinated
+      psi_id01[d] <- pi_id01[d] * psi_id00[d-1]          # infected, unvaccinated
+      psi_id11[d] <- pi_id11[d] * psi_id10[d-1]          # infected, vaccinated
     }
   }
   # personal contribution to the likelihood ---------------------------------
@@ -68,15 +84,16 @@ loglik <- function(x, pars){
 
   for (i in 1:x$n){
     if( x$dinf[i] == 999 ){
-      if( x$v[i] == 0 ){ Li[i] <- psi_0u[x$n_days] }
-      if( x$v[i] == 1 ){ Li[i] <- psi_0v[x$n_days] }
+      if( x$v[i] == 0 ){ Li[i] <- psi_id00[x$n_days] }
+      if( x$v[i] == 1 ){ Li[i] <- psi_id10[x$n_days] }
     }
     if ( x$dinf[i] != 999 ){
-      if( x$v[i] == 0 ){ Li[i] <- psi_1u[x$dinf[i]] }
-      if( x$v[i] == 1 ){ Li[i] <- psi_1v[x$dinf[i]] }
+      if( x$v[i] == 0 ){ Li[i] <- psi_id01[x$dinf[i]] }
+      if( x$v[i] == 1 ){ Li[i] <- psi_id11[x$dinf[i]] }
     }
   }
 
+  Li <- ifelse(Li <= 0, 0.00001, Li)
   # for debugging
   #print(Li)
 
@@ -132,12 +149,12 @@ ml_ve <- function(dat, n_days, n_periods, n_days_period, latent_period = 1,
   # print(initial$optim$bestmem)
   # maximum likelihood estimates ----------------------------------------------
   #tryCatch({
-  mle <- stats::optim(par = c(0.3, 0.4, 1),
+  mle <- stats::optim(par = c(0.4, 0),
                fn = loglik,
                x = x,
                method = "L-BFGS-B",
-               lower = c(0.0001, 0.0001, 1),
-               upper = c(1, 1, 2),
+               lower = c(0.0001, 0),
+               upper = c(1, 1),
                hessian = TRUE
                # control = list(trace = 3,
                #                maxit = 1000,
@@ -146,7 +163,7 @@ ml_ve <- function(dat, n_days, n_periods, n_days_period, latent_period = 1,
   #}, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
   se <- sqrt(diag(solve(mle$hessian)))
 
-  param_est <- tibble(param = c("alpha", "theta_0", "lambda"), mle = mle$par - c(0,0,1), se = se,
+  param_est <- tibble(param = c("theta_0", "eta"), mle = mle$par, se = se,
                       lower = mle - 1.96 * se, upper = mle + 1.96 * se)
 
   # output
