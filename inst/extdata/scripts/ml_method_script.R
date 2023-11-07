@@ -25,26 +25,34 @@ devtools::load_all()
 #   from your computer
 
 params00 <- readParams("./inst/extdata/input/SimVEE_MI_RCT_06_04_00_input.csv")
+  # set pop size to 5000
+  params00$N <- 5000
+  # set sims to 100
+  params00$sim <- 100
+  # set file title
+  params00$title <- "sim_test_n_5000"
 params03 <- readParams("./inst/extdata/input/SimVEE_MI_RCT_06_04_03_input.csv")
 params06 <- readParams("./inst/extdata/input/SimVEE_MI_RCT_06_04_06_input.csv")
 
 # Run simulation (or alternatively read in previously output sim outcomes file)
 #   there is an optional path argument for run_simvee(params, path = )
 #   if no path is specified, it will default to current working directory
-# outcomes_dat00 <- run_simvee(params00, path = "./inst/extdata/output")
+outcomes_dat00 <- run_simvee(params00, path = "./inst/extdata/output")
 # outcomes_dat03 <- run_simvee(params03, path = "./inst/extdata/output")
 # outcomes_dat06 <- run_simvee(params06, path = "./inst/extdata/output")
 
 # Read in outcomes files
 #   you can specify the file name/path of the output file inside ""
 outcomes_dat00 <- read.csv("./inst/extdata/output/Outcomes_MI_RCT_06_04_00.csv")
-outcomes_dat03 <- read.csv("./inst/extdata/output/Outcomes_MI_RCT_06_04_03.csv")
+outcomes_dat03 <- read.csv(
+  paste0("./inst/extdata/output/Outcomes_",params03$title,".csv")
+  )
 outcomes_dat06 <- read.csv("./inst/extdata/output/Outcomes_MI_RCT_06_04_06.csv")
 
 # select which input/putput files to use for estimation
 my_params <- params00
-my_dat <- outcomes_dat00
-lambda_true <- 0
+my_dat <- outcomes_dat03
+lambda_true <- 0.0
 theta_0_true <- 0.4
 # add FARI indicator variable
 dat1 <- my_dat %>% mutate(FARI = ifelse(DINF == 0, 0, 1),
@@ -115,39 +123,44 @@ mean_mle_est <- df_mle_est %>%
             q025 = quantile(mle, probs = c(0.025)),
             q975 = quantile(mle, probs = c(0.975))
             )
-
+mean_mle_est
 # get mean and 95% confidence bounds for daily VE
 mean_ve_est <- df_ve_est %>%
   group_by(day) %>%
   summarise(mean = mean(ve),
             median = median(ve),
             q025 = quantile(ve, probs = c(0.025)),
+            q05  = quantile(ve, probs = c(0.05)),
+            q25  = quantile(ve, probs = c(0.25)),
+            q75  = quantile(ve, probs = c(0.75)),
+            q95  = quantile(ve, probs = c(0.90)),
             q975 = quantile(ve, probs = c(0.975))
   )
 
 # plot of mean VE and confidence bounds
 ve_plot <- ggplot(data = mean_ve_est, aes(x = day, y = median)) +
   geom_line() +
-  geom_ribbon(aes(ymin = q025, ymax = q975), alpha = 0.1) +
+  geom_ribbon(aes(ymin = q25, ymax = q75), alpha = 0.3) +
+  geom_ribbon(aes(ymin = q05, ymax = q95), alpha = 0.1) +
   labs(y = "VE(t)", x = "Day",) +
-  #scale_y_continuous(limits = c(0, 1)) +
+  scale_y_continuous(limits = c(0, 1)) +
   geom_hline(yintercept = 1 - theta_0_true, linetype = "dashed") +
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.background = element_blank(),
         axis.line = element_line(colour = "black"))
 ve_plot
-
-# line plot of all VE estimates
-ve_plot_all <- ggplot(data = df_ve_est, aes(x = day, y = ve, color = as.factor(Sim))) +
-  geom_line() +
-  geom_hline(yintercept = 1 - theta_0_true, linetype = "dashed") +
-  theme(panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(),
-        axis.line = element_line(colour = "black"),
-        legend.position = "none")
-ve_plot_all
+ggsave("./inst/extdata/output/ve_sim_plot_00.jpg", ve_plot)
+# # line plot of all VE estimates
+# ve_plot_all <- ggplot(data = df_ve_est, aes(x = day, y = ve, color = as.factor(Sim))) +
+#   geom_line() +
+#   geom_hline(yintercept = 1 - theta_0_true, linetype = "dashed") +
+#   theme(panel.grid.major = element_blank(),
+#         panel.grid.minor = element_blank(),
+#         panel.background = element_blank(),
+#         axis.line = element_line(colour = "black"),
+#         legend.position = "none")
+# ve_plot_all
 
 
 ### Debugging
