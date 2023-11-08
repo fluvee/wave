@@ -23,43 +23,37 @@ devtools::load_all()
 #   you can specify the folder and file names of the input file within the ""
 #   if no path is specified a window will pop up and allow you to choose a file
 #   from your computer
+params_test <- readParams("./inst/extdata/input/test_input_new.csv")
 
 params00 <- readParams("./inst/extdata/input/SimVEE_MI_RCT_06_04_00_input.csv")
-  # set pop size to 5000
-  params00$N <- 5000
-  # set sims to 100
-  params00$sim <- 100
-  # set file title
-  params00$title <- "sim_test_n_5000"
 params03 <- readParams("./inst/extdata/input/SimVEE_MI_RCT_06_04_03_input.csv")
 params06 <- readParams("./inst/extdata/input/SimVEE_MI_RCT_06_04_06_input.csv")
 
 # Run simulation (or alternatively read in previously output sim outcomes file)
 #   there is an optional path argument for run_simvee(params, path = )
 #   if no path is specified, it will default to current working directory
+outcomes_test <- run_simvee(params_test, path = "./inst/extdata/output")
+
 outcomes_dat00 <- run_simvee(params00, path = "./inst/extdata/output")
-# outcomes_dat03 <- run_simvee(params03, path = "./inst/extdata/output")
-# outcomes_dat06 <- run_simvee(params06, path = "./inst/extdata/output")
+outcomes_dat03 <- run_simvee(params03, path = "./inst/extdata/output")
+outcomes_dat06 <- run_simvee(params06, path = "./inst/extdata/output")
 
 # Read in outcomes files
 #   you can specify the file name/path of the output file inside ""
-outcomes_dat00 <- read.csv("./inst/extdata/output/Outcomes_MI_RCT_06_04_00.csv")
-outcomes_dat03 <- read.csv(
-  paste0("./inst/extdata/output/Outcomes_",params03$title,".csv")
-  )
-outcomes_dat06 <- read.csv("./inst/extdata/output/Outcomes_MI_RCT_06_04_06.csv")
+# outcomes_dat00 <- read.csv("./inst/extdata/output/Outcomes_sim_test_n_5000.csv")
+# outcomes_dat03 <- read.csv(
+#   paste0("./inst/extdata/output/Outcomes_",params03$title,".csv")
+#   )
+# outcomes_dat06 <- read.csv("./inst/extdata/output/Outcomes_MI_RCT_06_04_06.csv")
 
 # select which input/putput files to use for estimation
-my_params <- params00
-my_dat <- outcomes_dat03
-lambda_true <- 0.0
-theta_0_true <- 0.4
+my_params <- params_test
+my_dat <- outcomes_test
+
 # add FARI indicator variable
 dat1 <- my_dat %>% mutate(FARI = ifelse(DINF == 0, 0, 1),
                        DINF_new = ifelse(DINF == 0, 999, DINF))
 
-# initialise
-reject_h0 <- 0
 # ------------------------------------------------------------------------------
 
 # Estimate waning VE for each simulation ---------------------------------------
@@ -76,8 +70,13 @@ for (i in 1:my_params$sim){
   #   alpha = pars["alpha"]
   #   theta_0 = pars["theta_0"]
   #   phi = pars["phi"]
-  param_estimates <- ml_ve(dat = dat2, n_days = my_params$ND, n_periods = my_params$NJ,
-    n_days_period = my_params$NDJ, latent_period = 1, infectious_period = 4)
+  param_estimates <- ml_ve(dat = dat2,
+                           n_days = my_params$ND,
+                           n_periods = my_params$NJ,
+                           n_days_period = my_params$NDJ#,
+                           # latent_period = 1,
+                           # infectious_period = 4
+                           )
 
   # store parameter estimates for each simulation
   # mle parameter estimates
@@ -88,7 +87,7 @@ for (i in 1:my_params$sim){
   # estimate VE from MLE parameters for each day
   ve_dat <- tibble(day = 1:my_params$ND,
                    period = rep(1:my_params$NJ, each = my_params$NDJ),
-                   ve = 1-(mle_est$mle[2] + (mle_est$mle[3] * .data$day))
+                   ve = mle_est$mle[1] + (mle_est$mle[2] * .data$day)
                    )
 
   # store daily VE estimates for each simulation
@@ -138,10 +137,10 @@ mean_ve_est <- df_ve_est %>%
   )
 
 # plot of mean VE and confidence bounds
-ve_plot <- ggplot(data = mean_ve_est, aes(x = day, y = median)) +
+ve_plot <- ggplot(data = mean_ve_est, aes(x = day, y = mean)) +
   geom_line() +
   geom_ribbon(aes(ymin = q25, ymax = q75), alpha = 0.3) +
-  geom_ribbon(aes(ymin = q05, ymax = q95), alpha = 0.1) +
+  geom_ribbon(aes(ymin = q025, ymax = q975), alpha = 0.1) +
   labs(y = "VE(t)", x = "Day",) +
   scale_y_continuous(limits = c(0, 1)) +
   geom_hline(yintercept = 1 - theta_0_true, linetype = "dashed") +
