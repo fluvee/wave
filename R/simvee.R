@@ -47,10 +47,7 @@ simvee <- function(params, simNum) {
   d_period = 0
   period = 1
 
-  params$beta_d11 = params$beta_d01 * params$theta_d
-  params$beta_d00 = params$beta_d01 * params$phi
-  params$beta_d10 = params$beta_d01 * params$theta_d * params$phi
-
+  beta_d01 <- rep(params$beta_d01, each = params$NDJ)
 
   ## Set value of X for each subject
   subject$X = as.numeric(runif(params$N) < params$pai)
@@ -80,6 +77,12 @@ simvee <- function(params, simNum) {
   while (d < params$ND) {
     d = d + 1
     d_period = d_period + 1
+
+    theta_d_wane <- ifelse((params$theta_d + (params$eta * d) > 1, 1, (params$theta_d + (params$eta * d))
+    # get beta values for that day
+    beta_d11 = beta_d01[d] * theta_d_wane
+    beta_d00 = beta_d01[d] * params$phi
+    beta_d10 = beta_d01[d] * theta_d_wane * params$phi
 
     # print(paste("Day",d, "Period", period, "Day within period", d_period))
 
