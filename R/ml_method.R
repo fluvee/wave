@@ -12,12 +12,12 @@ loglik <- function(x, pars){
   #names(pars) <- parameter_names
   # alpha = pars[1]    #pars["alpha"]
   theta_0 = pars[1]  # baseline vaccine efficacy
-  lambda = pars[2]   # 1- waning rate
+  lambda = pars[2]   # 1 - waning rate
   # for debugging
   #print(pars)
 
   # initialise betas
-  beta_d0 <- c(1,rep(0,x$n_days))
+  beta_d0 <- c(rep(0,x$n_days))
 
   # initialise unconditional probabilities
   pi_id00 <- c(1,rep(0,x$n_days-1))
