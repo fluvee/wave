@@ -50,9 +50,9 @@ simvee <- function(params) {
   beta_d01 <- rep(params$beta_d01, each = params$NDJ)
   theta_d_wane <- params$theta_d + (params$eta * 1:params$ND)
   theta_d_wane <- ifelse(theta_d_wane > 1, 1, theta_d_wane)
-  beta_d11 = beta_d01[d] * theta_d_wane
-  beta_d00 = beta_d01[d] * params$phi
-  beta_d10 = beta_d01[d] * theta_d_wane * params$phi
+  beta_d11 = beta_d01 * theta_d_wane
+  beta_d00 = beta_d01 * params$phi
+  beta_d10 = beta_d01 * theta_d_wane * params$phi
 
   ## Set value of X for each subject
   subject$X = as.numeric(runif(params$N) < params$pai)
