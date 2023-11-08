@@ -14,7 +14,7 @@ loglik <- function(x, pars){
   theta_0 = pars[1]  # baseline vaccine efficacy
   lambda = pars[2]   # 1 - waning rate
   # for debugging
-  #print(pars)
+  print(pars)
 
   # initialise betas
   beta_d0 <- c(rep(0,x$n_days))
@@ -48,7 +48,7 @@ loglik <- function(x, pars){
     #   infected on day d to the total number of unvaccinated susceptible
     #   persons at the beginning of that day
     beta_d0[d] <- length(which(x$dinf == d & x$v == 0)) / length(which(x$dinf == 999 & x$v == 0))
-    theta_d <- theta_0 + eta * d #period
+    theta_d <- theta_0 + (eta * d) #period
     theta_d <- ifelse(theta_d > 1, 1, theta_d)
 
     # conditional probabilities: pi_idvj = P(Y_idv = j|Y_i(d-1)v = 0)
@@ -135,7 +135,7 @@ ml_ve <- function(dat,
   #   possible_day_of_infection <- (d  - latent_period - infectious_period):(d - latent_period)
   #   prev[d] <- length(which(dat$DINF_new %in% possible_day_of_infection))/N
   # }
-  prev <- ifelse(prev == 0, 0.0001, prev)
+  # prev <- ifelse(prev == 0, 0.0001, prev)
   x <- list(n = N,
             n_days = n_days,
             n_days_period = n_days_period,
