@@ -122,7 +122,7 @@ loglik <- function(x, pars){
 ml_ve <- function(dat,
                   n_days,
                   n_periods,
-                  n_days_period,
+                  n_days_period#,
                   #latent_period = 1,
                   #infectious_period = 4
                   ){
