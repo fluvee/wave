@@ -48,6 +48,11 @@ simvee <- function(params, simNum) {
   period = 1
 
   beta_d01 <- rep(params$beta_d01, each = params$NDJ)
+  theta_d_wane <- params$theta_d + (params$eta * 1:params$ND)
+  theta_d_wane <- ifelse(theta_d_wane > 1, 1, theta_d_wane)
+  beta_d11 = beta_d01[d] * theta_d_wane
+  beta_d00 = beta_d01[d] * params$phi
+  beta_d10 = beta_d01[d] * theta_d_wane * params$phi
 
   ## Set value of X for each subject
   subject$X = as.numeric(runif(params$N) < params$pai)
@@ -67,10 +72,10 @@ simvee <- function(params, simNum) {
   getBetaForSubject = function (sub) {
     X = sub$X
     V = sub$V
-    if (V == 0 && X == 0) return(params$beta_d00)
-    if (V == 0 && X == 1) return(params$beta_d01)
-    if (V == 1 && X == 0) return(params$beta_d10)
-    if (V == 1 && X == 1) return(params$beta_d11)
+    if (V == 0 && X == 0) return(beta_d00)
+    if (V == 0 && X == 1) return(beta_d01)
+    if (V == 1 && X == 0) return(beta_d10)
+    if (V == 1 && X == 1) return(beta_d11)
   }
 
   ## Iterate over number of days.
@@ -78,17 +83,11 @@ simvee <- function(params, simNum) {
     d = d + 1
     d_period = d_period + 1
 
-    theta_d_wane <- ifelse((params$theta_d + (params$eta * d) > 1, 1, (params$theta_d + (params$eta * d))
-    # get beta values for that day
-    beta_d11 = beta_d01[d] * theta_d_wane
-    beta_d00 = beta_d01[d] * params$phi
-    beta_d10 = beta_d01[d] * theta_d_wane * params$phi
-
     # print(paste("Day",d, "Period", period, "Day within period", d_period))
 
     for (i in ID) {
       if (subjectY[i, d] == 0) {
-        subjectY[i, (d+1)] = as.numeric(runif(1) < getBetaForSubject(subject[i,])[period])
+        subjectY[i, (d+1)] = as.numeric(runif(1) < getBetaForSubject(subject[i,])[d])
         if (subjectY[i, (d+1)] == 1) {
           subject[i, "DINF"] = d
           NDINF[(subject[i,"X"]+1), (subject[i,"V"]+1), d] =
