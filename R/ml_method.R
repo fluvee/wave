@@ -119,22 +119,27 @@ loglik <- function(x, pars){
 #' @import dplyr
 #' @import tidyr
 #' @export
-ml_ve <- function(dat, n_days, n_periods, n_days_period, latent_period = 1,
-                  infectious_period = 4){
+ml_ve <- function(dat,
+                  n_days,
+                  n_periods,
+                  n_days_period,
+                  #latent_period = 1,
+                  #infectious_period = 4
+                  ){
 
   N <- length(unique(dat$ID))
-  prev <- numeric(n_days)
-
-  for (d in 1:n_days){
-    # calculate which days individuals got infected to be infectious on day d
-    possible_day_of_infection <- (d  - latent_period - infectious_period):(d - latent_period)
-    prev[d] <- length(which(dat$DINF_new %in% possible_day_of_infection))/N
-  }
+  # prev <- numeric(n_days)
+  #
+  # for (d in 1:n_days){
+  #   # calculate which days individuals got infected to be infectious on day d
+  #   possible_day_of_infection <- (d  - latent_period - infectious_period):(d - latent_period)
+  #   prev[d] <- length(which(dat$DINF_new %in% possible_day_of_infection))/N
+  # }
   prev <- ifelse(prev == 0, 0.0001, prev)
   x <- list(n = N,
             n_days = n_days,
             n_days_period = n_days_period,
-            prev = prev,
+            #prev = prev,
             dinf = dat$DINF_new,
             v = dat$V
   )
@@ -164,8 +169,12 @@ ml_ve <- function(dat, n_days, n_periods, n_days_period, latent_period = 1,
   #}, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
   se <- sqrt(diag(solve(mle$hessian)))
 
-  param_est <- tibble(param = c("ve", "eta"), mle = 1 - mle$par, se = se,
-                      lower = mle - 1.96 * se, upper = mle + 1.96 * se)
+  param_est <- tibble(
+    param = c("theta_0", "ve", "lambda","eta"),
+    mle = c(mle$par[1], 1 - mle$par[1], mle$par[2], mle$par[2] - 1),
+    se = c(rep(se, each = 2)),
+    lower = mle - 1.96 * se,
+    upper = mle + 1.96 * se)
 
   # output
   rtn <- param_est
