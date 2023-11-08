@@ -49,6 +49,7 @@ loglik <- function(x, pars){
     #   persons at the beginning of that day
     beta_d0[d] <- length(which(x$dinf == d & x$v == 0)) / length(which(x$dinf == 999 & x$v == 0))
     theta_d <- theta_0 + eta * d #period
+    theta_d <- ifelse(theta_d > 1, 1, theta_d)
 
     # conditional probabilities: pi_idvj = P(Y_idv = j|Y_i(d-1)v = 0)
     #.  i = person
