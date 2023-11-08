@@ -153,8 +153,8 @@ ml_ve <- function(dat, n_days, n_periods, n_days_period, latent_period = 1,
                fn = loglik,
                x = x,
                method = "L-BFGS-B",
-               lower = c(0.0001, 1.5),
-               upper = c(1, 1),
+               lower = c(0.0001, 1),
+               upper = c(1, 1.5),
                hessian = TRUE
                # control = list(trace = 3,
                #                maxit = 1000,
@@ -163,7 +163,7 @@ ml_ve <- function(dat, n_days, n_periods, n_days_period, latent_period = 1,
   #}, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
   se <- sqrt(diag(solve(mle$hessian)))
 
-  param_est <- tibble(param = c("theta_0", "eta"), mle = 1 - mle$par, se = se,
+  param_est <- tibble(param = c("ve", "eta"), mle = 1 - mle$par, se = se,
                       lower = mle - 1.96 * se, upper = mle + 1.96 * se)
 
   # output
