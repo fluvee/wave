@@ -26,13 +26,13 @@
 #' @keywords wave
 #' @export
 # main simulation function
-simvee <- function(params, simNum) {
+simvee <- function(params) {
   ID <- seq(1, params$N)
   X <-  rep(0, params$N)
   V <-  rep(0, params$N)
   DINF <-  rep(0, params$N)
 
-  subject <- data.frame(SIM = simNum, ID=ID, X=X, V=V, DINF=DINF)
+  subject <- data.frame(SIM = params$sim, ID=ID, X=X, V=V, DINF=DINF)
 
   ## SubjectY goes from d=0 to d=ND
   subjectY <- matrix(NA, nrow=params$N, ncol=params$ND+1)
