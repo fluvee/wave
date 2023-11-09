@@ -24,6 +24,7 @@ devtools::load_all()
 #   if no path is specified a window will pop up and allow you to choose a file
 #   from your computer
 params_test <- readParams("./inst/extdata/input/test_input_new.csv")
+params_test$eta = 0.005
 
 params00 <- readParams("./inst/extdata/input/SimVEE_MI_RCT_06_04_00_input.csv")
 params03 <- readParams("./inst/extdata/input/SimVEE_MI_RCT_06_04_03_input.csv")
@@ -65,11 +66,6 @@ for (i in 1:my_params$sim){
   dat2 <- dat1 %>% filter(.data$Sim == i)
 
   # estimate ve waning using ML method
-  #   we'll use the version without MCMC
-  #   the parameters estimated are:
-  #   alpha = pars["alpha"]
-  #   theta_0 = pars["theta_0"]
-  #   phi = pars["phi"]
   param_estimates <- ml_ve(dat = dat2,
                            n_days = my_params$ND,
                            n_periods = my_params$NJ,
@@ -105,12 +101,6 @@ for (i in 1:my_params$sim){
     df_mle_est <- mle_est
     df_ve_est <- daily_ve
     }
-
-  # calculate number of sims where null hypothesis is rejected
-  # that is, if lambda is significantly different from its true value
-  # the null hypothesis is ACCEPTED if (lower, upper) CONTAINS the true value
-  # reject_h0 <- reject_h0 +
-  #   ifelse(lambda_true %in% param_estimates$lower[3]:param_estimates$lower[3], 0, 1)
 }
 
 # Post process results after MLE estimation for each simulation ----------------
