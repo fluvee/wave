@@ -12,7 +12,7 @@ loglik <- function(x, pars){
   #names(pars) <- parameter_names
   # alpha = pars[1]    #pars["alpha"]
   theta_0 = pars[1]  # baseline vaccine efficacy
-  lambda = pars[2]   # 1 - waning rate
+  lambda = pars[2]   # waning rate*100
   # for debugging
   print(pars)
 
@@ -42,7 +42,7 @@ loglik <- function(x, pars){
   for (d in 1:x$n_days){
     #if(d %in% period_start_days){period <- period + 1}
     #print(period)
-    eta <- exp(lambda)
+    eta <- lambda/100
     # estimate hazard of infection in unvaccinated for each day
     #   the ratio of the number of unvaccinated susceptible persons who became
     #   infected on day d to the total number of unvaccinated susceptible
@@ -127,8 +127,6 @@ ml_ve <- function(dat,
                   #latent_period = 1,
                   #infectious_period = 4
                   ){
-
-  N <- length(unique(dat$ID))
   # prev <- numeric(n_days)
   #
   # for (d in 1:n_days){
@@ -137,13 +135,13 @@ ml_ve <- function(dat,
   #   prev[d] <- length(which(dat$DINF_new %in% possible_day_of_infection))/N
   # }
   # prev <- ifelse(prev == 0, 0.0001, prev)
-  x <- list(n = N,
+  x <- list(n = length(unique(dat$ID)),
             n_days = n_days,
             n_days_period = n_days_period,
             #prev = prev,
             dinf = dat$DINF_new,
             v = dat$V
-  )
+          )
 
 
   # use DE optim to get initial values
@@ -156,11 +154,11 @@ ml_ve <- function(dat,
   # print(initial$optim$bestmem)
   # maximum likelihood estimates ----------------------------------------------
   #tryCatch({
-  mle <- stats::optim(par = c(0.4, 1),
+  mle <- stats::optim(par = c(0.4, 0),
                fn = loglik,
                x = x,
                method = "L-BFGS-B",
-               lower = c(0.0001, -Inf),
+               lower = c(0.0001, 0),
                upper = c(1, Inf),
                hessian = TRUE
                # control = list(trace = 3,
@@ -172,7 +170,7 @@ ml_ve <- function(dat,
 
   param_est <- tibble(
     param = c("theta_0", "ve", "lambda","eta"),
-    mle = c(mle$par[1], 1 - mle$par[1], mle$par[2], mle$par[2] - 1),
+    mle = c(mle$par[1], 1 - mle$par[1], mle$par[2], mle$par[2]/100),
     se = c(rep(se, each = 2)),
     lower = mle - 1.96 * se,
     upper = mle + 1.96 * se)
