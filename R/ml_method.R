@@ -36,13 +36,13 @@ loglik <- function(x, pars){
 
 
   #initialise period
-  period <- 1
-  period_start_days <- seq(1, x$n_days, by = x$n_days_period)
+  #period <- 1
+  #period_start_days <- seq(1, x$n_days, by = x$n_days_period)
   # loop over days
   for (d in 1:x$n_days){
-    if(d %in% period_start_days){period <- period + 1}
+    #if(d %in% period_start_days){period <- period + 1}
     #print(period)
-    eta <- lambda - 1
+    eta <- exp(lambda)
     # estimate hazard of infection in unvaccinated for each day
     #   the ratio of the number of unvaccinated susceptible persons who became
     #   infected on day d to the total number of unvaccinated susceptible
@@ -50,6 +50,7 @@ loglik <- function(x, pars){
     beta_d0[d] <- length(which(x$dinf == d & x$v == 0)) / length(which(x$dinf == 999 & x$v == 0))
     theta_d <- theta_0 + (eta * d) #period
     theta_d <- ifelse(theta_d > 1, 1, theta_d)
+    theta_d <- ifelse(theta_d < 0, 0, theta_d)
 
     # conditional probabilities: pi_idvj = P(Y_idv = j|Y_i(d-1)v = 0)
     #.  i = person
@@ -159,8 +160,8 @@ ml_ve <- function(dat,
                fn = loglik,
                x = x,
                method = "L-BFGS-B",
-               lower = c(0.0001, 1),
-               upper = c(1, 1.5),
+               lower = c(0.0001, -Inf),
+               upper = c(1, Inf),
                hessian = TRUE
                # control = list(trace = 3,
                #                maxit = 1000,
