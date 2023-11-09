@@ -59,12 +59,12 @@ loglik <- function(x, pars){
     #   j = infection status (j = 0,1,2)
 
     # v = 0
-    pi_id00[d] <- 1 - beta_d0[d]
+    pi_id00[d] <- 1 - (beta_d0[d])
     pi_id01[d] <- beta_d0[d]
     pi_id02[d] <- 0
 
     # v = 1
-    pi_id10[d] <- 1 - theta_d * beta_d0[d]
+    pi_id10[d] <- 1 - (theta_d * beta_d0[d])
     pi_id11[d] <- theta_d * beta_d0[d]
     pi_id12[d] <- 0
 
@@ -123,35 +123,29 @@ loglik <- function(x, pars){
 ml_ve <- function(dat,
                   n_days,
                   n_periods,
-                  n_days_period#,
-                  #latent_period = 1,
-                  #infectious_period = 4
+                  n_days_period,
+                  latent_period = 1,
+                  infectious_period = 4
                   ){
+  # n_infectious <- numeric(n_days)
   # prev <- numeric(n_days)
   #
   # for (d in 1:n_days){
   #   # calculate which days individuals got infected to be infectious on day d
   #   possible_day_of_infection <- (d  - latent_period - infectious_period):(d - latent_period)
-  #   prev[d] <- length(which(dat$DINF_new %in% possible_day_of_infection))/N
+  #   n_infectious[d] <- length(which(dat$DINF_new %in% possible_day_of_infection))
+  #   prev[d] <- n_infectious[d]/N
   # }
-  # prev <- ifelse(prev == 0, 0.0001, prev)
+  #prev <- ifelse(prev == 0, 0.0001, prev)
   x <- list(n = length(unique(dat$ID)),
             n_days = n_days,
             n_days_period = n_days_period,
-            #prev = prev,
+            # prev = prev,
+            # n_infectious = n_infectious,
             dinf = dat$DINF_new,
             v = dat$V
           )
 
-
-  # use DE optim to get initial values
-  # initial <- DEoptim(fn=logLik,
-  #                    x = x,
-  #                    lower = c(0.0001, 0.0001, 0.0001),
-  #                    upper = c(1, 1, 2),
-  #                    control = list(itermax = 100, trace = FALSE)
-  # )
-  # print(initial$optim$bestmem)
   # maximum likelihood estimates ----------------------------------------------
   #tryCatch({
   mle <- stats::optim(par = c(0.4, 0),
@@ -159,12 +153,9 @@ ml_ve <- function(dat,
                x = x,
                method = "L-BFGS-B",
                lower = c(0.0001, 0),
-               upper = c(1, Inf),
+               upper = c(1, 1),
                hessian = TRUE
-               # control = list(trace = 3,
-               #                maxit = 1000,
-               #                ndeps = 1e-4)
-  )
+              )
   #}, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
   se <- sqrt(diag(solve(mle$hessian)))
 
